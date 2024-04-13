@@ -65,6 +65,7 @@ public class TunnelsComposite extends Composite {
 	private static final String EDIT_IMAGE_PATH = "/images/edit.png";
 	private static final String DELETE_IMAGE_PATH = "/images/delete.png";
 	private static final String IMPORT_IMAGE_PATH = "/images/import.png";
+	private static final String EXPORT_IMAGE_PATH = "/images/export.png";
 	private static final String[] TUNNEL_CONF_NAMES = {"CSV files"};
 	private static final String[] TUNNEL_CONF_EXT = {"*.csv"};
 
@@ -73,12 +74,14 @@ public class TunnelsComposite extends Composite {
 	private Button editTunnelButton;
 	private Button removeTunnelButton;
 	private Button importTunnelButton;
+	private Button exportTunnelButton;
 	private TunnelChangeListener listener;
 	private Session session;
 	private Image addImage;
 	private Image editImage;
 	private Image deleteImage;
 	private Image importImage;
+	private Image exportImage;
 	
 	private Shell shell;
 	private CsvConfigImporter csvConfigImporter;
@@ -102,6 +105,7 @@ public class TunnelsComposite extends Composite {
 		this.session = session;
 		addTunnelButton.setEnabled(session != null);
 		importTunnelButton.setEnabled(session != null);
+		exportTunnelButton.setEnabled(session != null);
 		updateTable();
 	}
 
@@ -151,6 +155,12 @@ public class TunnelsComposite extends Composite {
 		importTunnelButton.setToolTipText("Import Tunnels from a CSV file");
 		importTunnelButton.setImage(importImage);
 		importTunnelButton.setEnabled(false);
+		
+		exportTunnelButton = new Button(buttonBarComposite, SWT.PUSH);
+		exportTunnelButton.setText("Export");
+		exportTunnelButton.setToolTipText("Export Tunnels to a CSV file");
+		exportTunnelButton.setImage(exportImage);
+		exportTunnelButton.setEnabled(false);
 
 		addTunnelButton.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
@@ -179,6 +189,19 @@ public class TunnelsComposite extends Composite {
 		        String fn = dlg.open();
 		        if (fn != null) {
 		          importTunnels(fn);
+		        }
+		      }
+		});
+		
+		exportTunnelButton.addSelectionListener(new SelectionAdapter() {
+			public void widgetSelected(SelectionEvent event) {
+		        FileDialog dlg = new FileDialog(group.getShell(), SWT.SAVE);
+		        dlg.setText("Export Tunnel Configuration");
+		        dlg.setFilterNames(TUNNEL_CONF_NAMES);
+		        dlg.setFilterExtensions(TUNNEL_CONF_EXT);
+		        String fn = dlg.open();
+		        if (fn != null) {
+		          exportTunnels(fn);
 		        }
 		      }
 		});
@@ -329,7 +352,7 @@ public class TunnelsComposite extends Composite {
 				MessageBox messageBox = new MessageBox(shell, SWT.ICON_WARNING | SWT.YES | SWT.NO);
         		messageBox.setText("Warning");
         		messageBox.setMessage("Found " + importedTunnels.size() + 
-        				" records\nDo you want to import them now?\n(Existing tunnel will be updated)");
+        				" records\nDo you want to import them now?\n(Existing tunnel will be merged)");
         		int result = messageBox.open();
         		boolean proceed = (result == SWT.YES);
         		
@@ -376,12 +399,24 @@ public class TunnelsComposite extends Composite {
 //			});
 //		}
 	}
+	
+	private void exportTunnels(String csvPath) {
+		try {
+			csvConfigImporter.writeCsv(session.getTunnels(), csvPath);
+		} catch(Exception e) {
+			MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
+    		messageBox.setText("Error");
+    		messageBox.setMessage(e.getMessage());
+    		messageBox.open();
+		}
+	}
 
 	private void createImages() {
 		addImage = loadImage(ADD_IMAGE_PATH);
 		editImage = loadImage(EDIT_IMAGE_PATH);
 		deleteImage = loadImage(DELETE_IMAGE_PATH);
 		importImage = loadImage(IMPORT_IMAGE_PATH);
+		exportImage = loadImage(EXPORT_IMAGE_PATH);
 	}
 
 	private Image loadImage(String path) {
@@ -402,6 +437,7 @@ public class TunnelsComposite extends Composite {
 		editImage.dispose();
 		deleteImage.dispose();
 		importImage.dispose();
+		exportImage.dispose();
 	}
 
 	/**

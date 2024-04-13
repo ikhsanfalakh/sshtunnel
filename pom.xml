@@ -3,7 +3,7 @@
 	<groupId>org.programmerplanet</groupId>
 	<artifactId>sshtunnel-ng</artifactId>
 	<name>sshtunel-ng</name>
-	<version>0.6.0</version>
+	<version>0.7</version>
 	<url>https://github.com/agung-m/sshtunnel-ng</url>
 	<developers>
 		<developer>
@@ -181,6 +181,27 @@
 				<platform.classifier>windows-64</platform.classifier>
 			</properties>
 		</profile>
+		<profile>
+			<id>mac-64</id>
+			<activation>
+				<os>
+					<family>mac</family>
+					<arch>x86_64</arch>
+				</os>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<dependencies>
+				<dependency>
+				    <groupId>org.eclipse.swt</groupId>
+				    <artifactId>org.eclipse.swt.cocoa.macosx.x86_64</artifactId>
+				    <version>4.3</version>
+				    <scope>compile</scope>
+				</dependency>
+			</dependencies>
+			<properties>
+				<platform.classifier>mac-64</platform.classifier>
+			</properties>
+		</profile>
 	</profiles>
 	<dependencies>
 		<!--<dependency>
@@ -193,7 +214,7 @@
 		<dependency>
 			<groupId>com.github.mwiede</groupId>
 			<artifactId>jsch</artifactId>
-			<version>0.2.2</version>
+			<version>0.2.17</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-logging</groupId>

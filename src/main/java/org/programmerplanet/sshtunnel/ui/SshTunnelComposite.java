@@ -59,8 +59,8 @@ import org.programmerplanet.sshtunnel.model.Session;
 public class SshTunnelComposite extends Composite {
 
 	public static final String APPLICATION_TITLE = "SSH Tunnel NG";
-	private static final String APPLICATION_VERSION = "v0.6.0";
-	private static final String APPLICATION_SITE = "https://github.com/agung-m";
+	private static final String APPLICATION_VERSION = "v0.7";
+	private static final String APPLICATION_SITE = "github.com/agung-m/sshtunnel-ng";
 	private static final String APPLICATION_IMAGE_PATH = "/images/sshtunnel-ng.png";
 	private static final String CONNECT_IMAGE_PATH = "/images/connect.png";
 	private static final String DISCONNECT_IMAGE_PATH = "/images/disconnect.png";
@@ -85,7 +85,7 @@ public class SshTunnelComposite extends Composite {
 	private TrayItem trayItem;
 	
 	private Label versionLabel;
-	// private Label siteLabel;
+	private Label siteLabel;
 	private ProgressBar progressBar;
 	private boolean isConnecting;
 
@@ -326,11 +326,17 @@ public class SshTunnelComposite extends Composite {
 //		fillLayout.marginHeight = 0;
 //		fillLayout.marginWidth = 8;
 		//statusLineComposite.setLayout(fillLayout);
-		GridLayout twoColsGridLayout = new GridLayout(2, false);
-		twoColsGridLayout.marginRight = 2;
-		twoColsGridLayout.marginTop = 0;
+//		GridLayout twoColsGridLayout = new GridLayout(2, false);
+//		twoColsGridLayout.marginRight = 2;
+//		twoColsGridLayout.marginTop = 0;
 		
-		statusBarComposite.setLayout(twoColsGridLayout);
+		GridLayout statusBarGridLayout = new GridLayout(3, false);
+		statusBarGridLayout.marginRight = 2;
+		statusBarGridLayout.marginTop = 0;
+		//statusBarGridLayout.horizontalSpacing = 2;
+		
+		//statusBarComposite.setLayout(twoColsGridLayout);
+		statusBarComposite.setLayout(statusBarGridLayout);
 		statusBarComposite.setLayoutData(new GridData(SWT.FILL, SWT.END, true, false));
 
 //		GridData gridData = new GridData(SWT.BEGINNING, SWT.CENTER, true, false);
@@ -338,20 +344,22 @@ public class SshTunnelComposite extends Composite {
 //		statusLineComposite.setLayoutData(gridData);
 //		gridData.widthHint = 100;
 		
+		siteLabel = new Label(statusBarComposite, SWT.NONE);
+		siteLabel.setText(APPLICATION_SITE);
+		siteLabel.setEnabled(false);
+		siteLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, true, false));
+		
 		progressBar = new ProgressBar(statusBarComposite, SWT.INDETERMINATE);
-	    progressBar.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, true, false));
+	    progressBar.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
 	    //progressBar.setMaximum(10);
 	    progressBar.setVisible(false);
 		
-//	    siteLabel = new Label(statusBarComposite, SWT.NONE);
-//		siteLabel.setText(APPLICATION_SITE);
-//		siteLabel.setEnabled(false);
-//		siteLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false));
-		
 		versionLabel = new Label(statusBarComposite, SWT.NONE);
-		versionLabel.setText(APPLICATION_SITE + " | " + APPLICATION_VERSION);
+		//versionLabel.setText(APPLICATION_SITE + " | " + APPLICATION_VERSION);
+		versionLabel.setText("   " + APPLICATION_VERSION);
 		versionLabel.setEnabled(false);
-		versionLabel.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
+		//versionLabel.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
+		versionLabel.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
 	}
 	
 	private void showProgressBar() {

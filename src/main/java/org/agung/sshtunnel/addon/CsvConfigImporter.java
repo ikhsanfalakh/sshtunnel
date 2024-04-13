@@ -1,14 +1,18 @@
 package org.agung.sshtunnel.addon;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.programmerplanet.sshtunnel.model.Tunnel;
 
@@ -76,5 +80,48 @@ public class CsvConfigImporter {
 			}
 		}
 		return importedTunnels;
+	}
+	
+	public String convertToCSV(String[] data) {
+	    return Stream.of(data)
+	      .map(this::escapeSpecialCharacters)
+	      .collect(Collectors.joining(","));
+	}
+	
+	public String escapeSpecialCharacters(String data) {
+	    if (data == null) {
+	        throw new IllegalArgumentException("Input data cannot be null");
+	    }
+	    String escapedData = data.replaceAll("\\R", " ");
+	    if (data.contains(",") || data.contains("\"") || data.contains("'")) {
+	        data = data.replace("\"", "\"\"");
+	        escapedData = "\"" + data + "\"";
+	    }
+	    return escapedData;
+	}
+	
+	public void writeCsv(List<Tunnel> tunnels, String csvPath) throws Exception {
+		List<String[]> dataLines = new ArrayList<>();
+		// Add header
+		dataLines.add(tunnelConfHeaders.toArray(new String[0]));
+		
+		for (Tunnel tunnel: tunnels) {
+			String[] line = new String[tunnelConfHeaders.size()];
+			line[0] = tunnel.getLocalAddress();
+			line[1] = String.valueOf(tunnel.getLocalPort());
+			line[2] = tunnel.getRemoteAddress();
+			line[3] = String.valueOf(tunnel.getRemotePort());
+			if (tunnel.getLocal())
+				line[4] = "local";
+			else
+				line[4] = "remote";
+			dataLines.add(line);
+		}
+		try (PrintWriter pw = new PrintWriter(new File(csvPath))) {
+			dataLines.stream().map(this::convertToCSV).forEach(pw::println);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			throw new Exception(e.getMessage());
+		}
 	}
 }
