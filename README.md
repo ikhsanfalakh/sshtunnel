@@ -13,28 +13,30 @@ https://www.ssh.com/academy/ssh/tunneling
 ## Features
 
 1. Simple and clear UI
-2. Manage multiple sessions and tunnels
-3. Local and remote tunnels supported
-4. Basic username/password and private key authentications
-5. Configurable encryption ciphers
-6. Enable/disable compression
-7. Quick connect/disconnect from the system tray
-8. Fast and lightweight (multithreaded with a small memory footprint of ~16 MB RAM)
-9. Reliable (automatic reconnection, session hang prevention)
-10. Multi-platform (it runs on Linux, Windows, and macOS)
-11. Portable/standalone installation, no admin/root access required (runnable from an external disk or USB drive)
+   - Quick connect/disconnect from the system tray
+3. Manage multiple sessions and tunnels
+   - Local and remote forwarding are supported
+   - Export/import tunnel configuration to/from a CSV file
+5. Support common and additional SSH options:
+   - Username/password and private key authentications
+   - Ciphers
+   - Enable/disable compression
+9. Fast and lightweight (multithreaded with a small memory footprint of ~16 MB RAM)
+10. Reliable (automatic reconnection, session hang prevention)
+11. Cross-platform (Linux, Windows, and macOS)
+12. Portable installation, no admin/root access required (runnable from an external disk or USB drive)
 
 ## Download
 
 ### Latest version
 
-* [Linux x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.6.0/sshtunnel-ng-0.6.0-dist-linux-64.zip)
-* [Windows 64-bit](https://github.com/agung-m/sshtunnel-ng/releases/download/0.6.0/sshtunnel-ng-0.6.0-dist-windows-64.zip)
-* [macOS x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.6.0/sshtunnel-ng-0.6.0-dist-mac-64.zip)
+* [Linux x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-linux-64.zip)
+* [Windows 64-bit](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-windows-64.zip)
+* [macOS x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-mac-64.zip)
 
 ## Requirements
 
-[Java Runtime](https://www.java.com/en/download/manual.jsp) (JRE) 8.0 or newer
+[Java Runtime (JRE)](https://www.java.com/en/download/manual.jsp) 8.0 or newer
 
 ## License
 
@@ -47,7 +49,7 @@ sshtunnel@agungmulya.com
 
 ## Building
 
-  For the current platform:
+  For the current platform used for building:
 
   `mvn clean assembly:single`
 
