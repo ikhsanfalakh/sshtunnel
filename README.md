@@ -33,10 +33,13 @@ https://www.ssh.com/academy/ssh/tunneling
 * [Linux x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-linux-64.zip)
 * [Windows 64-bit](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-windows-64.zip)
 * [macOS x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-mac-64.zip)
+* [macOS ARM64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-mac-aarch64.zip)
 
 ## Requirements
 
 [Java Runtime (JRE)](https://www.java.com/en/download/manual.jsp) 8.0 or newer
+
+For macOS ARM64, the minimum required Java version is [JDK17](https://www.oracle.com/uk/java/technologies/downloads/#jdk17-mac).
 
 ## License
 
@@ -46,10 +49,15 @@ https://www.ssh.com/academy/ssh/tunneling
 sshtunnel@agungmulya.com
 
 --------------------------------------------------------------------------------
+## Running
 
-## Building
+  Unzip the target distribution.
 
-  For the current platform used for building:
+  `java -jar sshtunnel-ng-{VERSION}.jar`
+
+## Compiling from source
+
+  For the current platform used for compiling:
 
   `mvn clean assembly:single`
 
@@ -58,13 +66,6 @@ sshtunnel@agungmulya.com
   `mvn -P +linux,-windows clean assembly:single`
 
   Supported platforms: windows, windows-64, linux, linux-64, mac-64
-
-
-## Running
-
-  Unzip the target distribution.
-
-  `java -jar sshtunnel-ng-{VERSION}.jar`
 
 ## Changes
 See [Releases](https://github.com/agung-m/sshtunnel-ng/releases).
