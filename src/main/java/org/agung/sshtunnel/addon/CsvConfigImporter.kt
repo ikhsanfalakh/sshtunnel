@@ -16,20 +16,17 @@ class CsvConfigImporter {
     )
 
     @Throws(IOException::class)
-    fun readCsv(csvPath: String): Set<Tunnel?>? {
-        var importedTunnels: HashSet<Tunnel?>? = null
+    fun readCsv(csvPath: String): MutableSet<Tunnel> {
+        val importedTunnels: HashSet<Tunnel> = HashSet()
 
         val br = BufferedReader(FileReader(csvPath))
         // Get header
         var line: String = br.readLine()
         val colNamesArr: Array<String> = line.split(COMMA_DELIMITER.toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         val colNames: List<String> = listOf(*colNamesArr)
-        //Collections.sort(colNames);
         if (colNames == tunnelConfHeaders) {
-            importedTunnels = HashSet()
             while ((br.readLine().also { line = it }) != null) {
-                val values = line.split(COMMA_DELIMITER.toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                //records.add(Arrays.asList(values));
+                val values: Array<String> = line.split(COMMA_DELIMITER.toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
                 if (values.size == tunnelConfHeaders.size) {
                     val tunnel = Tunnel()
                     tunnel.localAddress = values[0]
