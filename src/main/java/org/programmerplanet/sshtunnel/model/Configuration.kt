@@ -13,305 +13,254 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.model;
+package org.programmerplanet.sshtunnel.model
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Properties;
-
-import org.programmerplanet.sshtunnel.util.EncryptionUtil;
+import org.programmerplanet.sshtunnel.util.createKeyString
+import org.programmerplanet.sshtunnel.util.decrypt
+import org.programmerplanet.sshtunnel.util.encrypt
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.util.*
 
 /**
  * Responsible for storing and loading the configuration for the application.
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class Configuration {
+class Configuration {
+    var top: Int = 0
+    var left: Int = 0
+    var width: Int = 500
+    var height: Int = 400
+    var weights: IntArray = intArrayOf(5, 7)
+    private val sessions: MutableList<Session> = ArrayList()
 
-	private int top = 0;
-	private int left = 0;
-	private int width = 500;
-	private int height = 400;
-	private int[] weights = new int[] { 5, 7 };
-	private List<Session> sessions = new ArrayList<Session>();
+    fun getSessions(): List<Session> {
+        return sessions
+    }
 
-	public int getTop() {
-		return top;
-	}
+    @Throws(IOException::class)
+    fun write() {
+        val properties = Properties()
 
-	public void setTop(int top) {
-		this.top = top;
-	}
+        properties.setProperty("top", top.toString())
+        properties.setProperty("left", left.toString())
+        properties.setProperty("width", width.toString())
+        properties.setProperty("height", height.toString())
+        properties.setProperty("weights", intArrayToString(this.weights))
 
-	public int getLeft() {
-		return left;
-	}
+        val si: ListIterator<Session> = sessions.listIterator()
+        while (si.hasNext()) {
+            val session = si.next()
 
-	public void setLeft(int left) {
-		this.left = left;
-	}
+            val sessionKey = "sessions[" + si.previousIndex() + "]"
 
-	public int getWidth() {
-		return width;
-	}
+            properties.setProperty("$sessionKey.sessionName", session.sessionName)
+            properties.setProperty("$sessionKey.hostname", session.hostname)
+            properties.setProperty("$sessionKey.port", session.port.toString())
+            properties.setProperty("$sessionKey.username", session.username)
+            if (session.password != null) {
+                val keyString = createKeyString()
+                val encryptedPassword = encrypt(session.password, keyString!!)
+                properties.setProperty("$sessionKey.key", keyString)
+                properties.setProperty("$sessionKey.password", encryptedPassword)
+            }
 
-	public void setWidth(int width) {
-		this.width = width;
-	}
+            if (session.identityPath != null) {
+                properties.setProperty("$sessionKey.identityPath", session.identityPath)
+            }
 
-	public int getHeight() {
-		return height;
-	}
+            if (session.passPhrase != null) {
+                val keyString = createKeyString()
+                val encryptedPassphrase = encrypt(session.passPhrase, keyString!!)
+                properties.setProperty("$sessionKey.passphraseKey", keyString)
+                properties.setProperty("$sessionKey.passphrase", encryptedPassphrase)
+            }
 
-	public void setHeight(int height) {
-		this.height = height;
-	}
+            if (session.ciphers != null) {
+                properties.setProperty("$sessionKey.ciphers", session.ciphers)
+            }
 
-	public void setWeights(int[] weights) {
-		this.weights = weights;
-	}
+            if (session.debugLogPath != null) {
+                properties.setProperty("$sessionKey.debugLogPath", session.debugLogPath)
+            }
 
-	public int[] getWeights() {
-		return weights;
-	}
+            properties.setProperty("$sessionKey.compression", session.isCompressed.toString())
 
-	public List<Session> getSessions() {
-		return sessions;
-	}
+            val ti: ListIterator<Tunnel> = session.tunnels.listIterator()
+            while (ti.hasNext()) {
+                val tunnel = ti.next()
 
-	public void write() throws IOException {
-		Properties properties = new Properties();
+                val tunnelKey = sessionKey + ".tunnels[" + ti.previousIndex() + "]"
 
-		properties.setProperty("top", Integer.toString(this.top));
-		properties.setProperty("left", Integer.toString(this.left));
-		properties.setProperty("width", Integer.toString(this.width));
-		properties.setProperty("height", Integer.toString(this.height));
-		properties.setProperty("weights", intArrayToString(this.weights));
+                properties.setProperty("$tunnelKey.localAddress", tunnel.localAddress)
+                properties.setProperty("$tunnelKey.localPort", tunnel.localPort.toString())
+                properties.setProperty("$tunnelKey.remoteAddress", tunnel.remoteAddress)
+                properties.setProperty("$tunnelKey.remotePort", tunnel.remotePort.toString())
+                properties.setProperty("$tunnelKey.local", tunnel.local.toString())
+            }
+        }
 
-		for (ListIterator<Session> si = sessions.listIterator(); si.hasNext();) {
-			Session session = si.next();
+        storeProperties(properties)
+    }
 
-			String sessionKey = "sessions[" + si.previousIndex() + "]";
+    @Throws(IOException::class)
+    fun read() {
+        val properties = loadProperties()
 
-			properties.setProperty(sessionKey + ".sessionName", session.getSessionName());
-			properties.setProperty(sessionKey + ".hostname", session.getHostname());
-			properties.setProperty(sessionKey + ".port", Integer.toString(session.getPort()));
-			properties.setProperty(sessionKey + ".username", session.getUsername());
-			if (session.getPassword() != null) {
-				String keyString = EncryptionUtil.createKeyString();
-				String encryptedPassword = EncryptionUtil.encrypt(session.getPassword(), keyString);
-				properties.setProperty(sessionKey + ".key", keyString);
-				properties.setProperty(sessionKey + ".password", encryptedPassword);
-			}
-			
-			if (session.getIdentityPath() != null) {
-				properties.setProperty(sessionKey + ".identityPath", session.getIdentityPath());
-			}
-			
-			if (session.getPassPhrase() != null) {
-				String keyString = EncryptionUtil.createKeyString();
-				String encryptedPassphrase = EncryptionUtil.encrypt(session.getPassPhrase(), keyString);
-				properties.setProperty(sessionKey + ".passphraseKey", keyString);
-				properties.setProperty(sessionKey + ".passphrase", encryptedPassphrase);
-			}
-			
-			if (session.getCiphers() != null) {
-				properties.setProperty(sessionKey + ".ciphers", session.getCiphers());
-			}
-			
-			if (session.getDebugLogPath() != null) {
-				properties.setProperty(sessionKey + ".debugLogPath", session.getDebugLogPath());
-			}
-			
-			properties.setProperty(sessionKey + ".compression", String.valueOf(session.isCompressed()));
+        this.top = properties.getProperty("top", top.toString()).toInt()
+        this.left = properties.getProperty("left", left.toString()).toInt()
+        this.width = properties.getProperty("width", width.toString()).toInt()
+        this.height = properties.getProperty("height", height.toString()).toInt()
+        this.weights = stringToIntArray(properties.getProperty("weights", intArrayToString(this.weights)))
 
-			for (ListIterator<Tunnel> ti = session.getTunnels().listIterator(); ti.hasNext();) {
-				Tunnel tunnel = ti.next();
+        var sessionIndex = 0
+        var moreSessions = true
+        while (moreSessions) {
+            val sessionKey = "sessions[$sessionIndex]"
 
-				String tunnelKey = sessionKey + ".tunnels[" + ti.previousIndex() + "]";
+            val sessionName = properties.getProperty("$sessionKey.sessionName")
+            moreSessions = (sessionName != null)
+            if (moreSessions) {
+                val hostname = properties.getProperty("$sessionKey.hostname")
+                val port = properties.getProperty("$sessionKey.port")
+                val username = properties.getProperty("$sessionKey.username")
 
-				properties.setProperty(tunnelKey + ".localAddress", tunnel.getLocalAddress());
-				properties.setProperty(tunnelKey + ".localPort", Integer.toString(tunnel.getLocalPort()));
-				properties.setProperty(tunnelKey + ".remoteAddress", tunnel.getRemoteAddress());
-				properties.setProperty(tunnelKey + ".remotePort", Integer.toString(tunnel.getRemotePort()));
-				properties.setProperty(tunnelKey + ".local", Boolean.toString(tunnel.getLocal()));
-			}
-		}
+                val keyString = properties.getProperty("$sessionKey.key")
+                var password = properties.getProperty("$sessionKey.password")
+                if (keyString != null && password != null) {
+                    password = decrypt(password, keyString)
+                }
 
-		storeProperties(properties);
-	}
+                val identityPath = properties.getProperty("$sessionKey.identityPath")
 
-	public void read() throws IOException {
-		Properties properties = loadProperties();
+                val passphraseKeyString = properties.getProperty("$sessionKey.passphraseKey")
+                var passphrase = properties.getProperty("$sessionKey.passphrase")
+                if (passphraseKeyString != null && passphrase != null) {
+                    passphrase = decrypt(passphrase, passphraseKeyString)
+                }
 
-		this.top = Integer.parseInt(properties.getProperty("top", Integer.toString(this.top)));
-		this.left = Integer.parseInt(properties.getProperty("left", Integer.toString(this.left)));
-		this.width = Integer.parseInt(properties.getProperty("width", Integer.toString(this.width)));
-		this.height = Integer.parseInt(properties.getProperty("height", Integer.toString(this.height)));
-		this.weights = stringToIntArray(properties.getProperty("weights", intArrayToString(this.weights)));
 
-		int sessionIndex = 0;
-		boolean moreSessions = true;
-		while (moreSessions) {
-			String sessionKey = "sessions[" + sessionIndex + "]";
+                val session = Session()
+                session.sessionName = sessionName
+                session.hostname = hostname
+                if (port != null && !port.isEmpty()) {
+                    session.port = port.toInt()
+                }
+                session.username = username
+                session.password = password
+                session.identityPath = identityPath
+                session.passPhrase = passphrase
 
-			String sessionName = properties.getProperty(sessionKey + ".sessionName");
-			moreSessions = (sessionName != null);
-			if (moreSessions) {
-				String hostname = properties.getProperty(sessionKey + ".hostname");
-				String port = properties.getProperty(sessionKey + ".port");
-				String username = properties.getProperty(sessionKey + ".username");
+                val ciphers = properties.getProperty("$sessionKey.ciphers")
+                session.ciphers = ciphers
 
-				String keyString = properties.getProperty(sessionKey + ".key");
-				String password = properties.getProperty(sessionKey + ".password");
-				if (keyString != null && password != null) {
-					password = EncryptionUtil.decrypt(password, keyString);
-				}
-				
-				String identityPath = properties.getProperty(sessionKey + ".identityPath");
-				
-				String passphraseKeyString = properties.getProperty(sessionKey + ".passphraseKey");
-				String passphrase = properties.getProperty(sessionKey + ".passphrase");
-				if (passphraseKeyString != null && passphrase != null) {
-					passphrase = EncryptionUtil.decrypt(passphrase, passphraseKeyString);
-				}
-				
+                val debugLogPath = properties.getProperty("$sessionKey.debugLogPath")
+                if (debugLogPath != null) {
+                    session.debugLogPath = debugLogPath
+                }
 
-				Session session = new Session();
-				session.setSessionName(sessionName);
-				session.setHostname(hostname);
-				if (port != null && port.length() > 0) {
-					session.setPort(Integer.parseInt(port));
-				}
-				session.setUsername(username);
-				session.setPassword(password);
-				session.setIdentityPath(identityPath);
-				session.setPassPhrase(passphrase);
-				
-				String ciphers = properties.getProperty(sessionKey + ".ciphers");
-				session.setCiphers(ciphers);
-				
-				String debugLogPath = properties.getProperty(sessionKey + ".debugLogPath");
-				if (debugLogPath != null) {
-					session.setDebugLogPath(debugLogPath);
-				}
-				
-				boolean compressed = false;
-				String compressionString = properties.getProperty(sessionKey + ".compression");
-				if (compressionString != null) {
-					compressed = Boolean.parseBoolean(compressionString);
-				}
-				session.setCompressed(compressed);
+                var compressed = false
+                val compressionString = properties.getProperty("$sessionKey.compression")
+                if (compressionString != null) {
+                    compressed = compressionString.toBoolean()
+                }
+                session.isCompressed = compressed
 
-				sessions.add(session);
+                sessions.add(session)
 
-				int tunnelIndex = 0;
-				boolean moreTunnels = true;
-				while (moreTunnels) {
-					String tunnelKey = sessionKey + ".tunnels[" + tunnelIndex + "]";
+                var tunnelIndex = 0
+                var moreTunnels = true
+                while (moreTunnels) {
+                    val tunnelKey = "$sessionKey.tunnels[$tunnelIndex]"
 
-					String localAddress = properties.getProperty(tunnelKey + ".localAddress");
-					moreTunnels = (localAddress != null);
-					if (moreTunnels) {
-						String localPort = properties.getProperty(tunnelKey + ".localPort");
-						String remoteAddress = properties.getProperty(tunnelKey + ".remoteAddress");
-						String remotePort = properties.getProperty(tunnelKey + ".remotePort");
-						boolean local = true;
-						String localConf = properties.getProperty(tunnelKey + ".local");
-						if (localConf != null) {
-							local = Boolean.parseBoolean(localConf);
-						}
+                    val localAddress = properties.getProperty("$tunnelKey.localAddress")
+                    moreTunnels = (localAddress != null)
+                    if (moreTunnels) {
+                        val localPort = properties.getProperty("$tunnelKey.localPort")
+                        val remoteAddress = properties.getProperty("$tunnelKey.remoteAddress")
+                        val remotePort = properties.getProperty("$tunnelKey.remotePort")
+                        var local = true
+                        val localConf = properties.getProperty("$tunnelKey.local")
+                        if (localConf != null) {
+                            local = localConf.toBoolean()
+                        }
 
-						Tunnel tunnel = new Tunnel();
-						tunnel.setLocalAddress(localAddress);
-						tunnel.setLocalPort(Integer.parseInt(localPort));
-						tunnel.setRemoteAddress(remoteAddress);
-						tunnel.setRemotePort(Integer.parseInt(remotePort));
-						tunnel.setLocal(local);
+                        val tunnel = Tunnel()
+                        tunnel.localAddress = localAddress
+                        tunnel.localPort = localPort.toInt()
+                        tunnel.remoteAddress = remoteAddress
+                        tunnel.remotePort = remotePort.toInt()
+                        tunnel.local = local
 
-						session.getTunnels().add(tunnel);
-					}
-					tunnelIndex++;
-				}
-			}
-			sessionIndex++;
-		}
-	}
+                        session.tunnels.add(tunnel)
+                    }
+                    tunnelIndex++
+                }
+            }
+            sessionIndex++
+        }
+    }
 
-	/**
-	 * Loads the properties from the user's configuration file.
-	 */
-	private Properties loadProperties() throws IOException {
-		Properties properties = new Properties();
+    /**
+     * Loads the properties from the user's configuration file.
+     */
+    @Throws(IOException::class)
+    private fun loadProperties(): Properties {
+        val properties = Properties()
 
-		File configFile = getConfigurationFile();
-		if (configFile.exists()) {
-			FileInputStream fis = new FileInputStream(configFile);
-			try {
-				properties.load(fis);
-			} finally {
-				try {
-					fis.close();
-				} catch (Exception e) { /* ignore */
-				}
-			}
-		}
+        val configFile = configurationFile
+        if (configFile.exists()) {
+            FileInputStream(configFile).use { fis ->
+                properties.load(fis)
+            }
+        }
 
-		return properties;
-	}
+        return properties
+    }
 
-	/**
-	 * Stores the properties to the user's configuration file.
-	 */
-	private void storeProperties(Properties properties) throws IOException {
-		File configFile = getConfigurationFile();
+    /**
+     * Stores the properties to the user's configuration file.
+     */
+    @Throws(IOException::class)
+    private fun storeProperties(properties: Properties) {
+        val configFile = configurationFile
 
-		FileOutputStream fos = new FileOutputStream(configFile);
-		try {
-			properties.store(fos, "SSH Tunnel Configuration");
-		} finally {
-			try {
-				fos.close();
-			} catch (Exception e) { /* ignore */
-			}
-		}
-	}
+        FileOutputStream(configFile).use { fos ->
+            properties.store(fos, "SSH Tunnel Configuration")
+        }
+    }
 
-	/**
-	 * Gets the configuration file (a file named .sshtunnel in the user's
-	 * home directory).
-	 */
-	private File getConfigurationFile() {
-		String userDir = System.getProperty("user.home");
-		File configFile = new File(userDir, ".sshtunnel");
-		return configFile;
-	}
+    private val configurationFile: File
+        /**
+         * Gets the configuration file (a file named .sshtunnel in the user's
+         * home directory).
+         */
+        get() {
+            val userDir = System.getProperty("user.home")
+            return File(userDir, ".sshtunnel")
+        }
 
-	/**
-	 * Converts an int array into a comma-delimited string.
-	 */
-	private String intArrayToString(int[] intArray) {
-		String str = Arrays.toString(intArray);
-		str = str.replaceAll("[\\[\\] ]", "");
-		return str;
-	}
+    /**
+     * Converts an int array into a comma-delimited string.
+     */
+    private fun intArrayToString(intArray: IntArray): String {
+        var str = intArray.contentToString()
+        str = str.replace("[\\[\\] ]".toRegex(), "")
+        return str
+    }
 
-	/**
-	 * Converts a comma-delimited string into an int array.
-	 */
-	private int[] stringToIntArray(String str) {
-		String[] strArray = str.split(",");
-		int[] intArray = new int[strArray.length];
-		for (int i = 0; i < strArray.length; i++) {
-			intArray[i] = Integer.parseInt(strArray[i]);
-		}
-		return intArray;
-	}
-	
+    /**
+     * Converts a comma-delimited string into an int array.
+     */
+    private fun stringToIntArray(str: String): IntArray {
+        val strArray = str.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        val intArray = IntArray(strArray.size)
+        for (i in strArray.indices) {
+            intArray[i] = strArray[i].toInt()
+        }
+        return intArray
+    }
 }

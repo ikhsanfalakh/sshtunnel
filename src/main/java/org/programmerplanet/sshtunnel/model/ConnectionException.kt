@@ -13,33 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.model;
+package org.programmerplanet.sshtunnel.model
+
+import java.io.Serial
 
 /**
  * Exception thrown when an error occurs attempting to connect a session.
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class ConnectionException extends Exception {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	public ConnectionException() {
-	}
-
-	public ConnectionException(String message) {
-		super(message);
-	}
-
-	public ConnectionException(Throwable cause) {
-		super(cause);
-	}
-
-	public ConnectionException(String message, Throwable cause) {
-		super(message, cause);
-	}
-
+class ConnectionException(cause: Throwable?) : Exception(cause) {
+    companion object {
+        /**
+         *
+         */
+        @Serial
+        private const val serialVersionUID = 9062945876082754273L
+    }
 }

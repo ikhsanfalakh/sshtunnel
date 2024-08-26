@@ -18,11 +18,7 @@ package org.programmerplanet.sshtunnel.ui;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.agung.sshtunnel.addon.CsvConfigImporter;
 import org.apache.commons.logging.Log;
@@ -75,7 +71,7 @@ public class TunnelsComposite extends Composite {
 	private Button removeTunnelButton;
 	private Button importTunnelButton;
 	private Button exportTunnelButton;
-	private TunnelChangeListener listener;
+	private final TunnelChangeListener listener;
 	private Session session;
 	private Image addImage;
 	private Image editImage;
@@ -84,7 +80,7 @@ public class TunnelsComposite extends Composite {
 	private Image exportImage;
 	
 	private Shell shell;
-	private CsvConfigImporter csvConfigImporter;
+	private final CsvConfigImporter csvConfigImporter;
 
 	public TunnelsComposite(Composite parent, int style, TunnelChangeListener listener) {
 		super(parent, style);
@@ -188,8 +184,12 @@ public class TunnelsComposite extends Composite {
 		        dlg.setFilterExtensions(TUNNEL_CONF_EXT);
 		        String fn = dlg.open();
 		        if (fn != null) {
-		          importTunnels(fn);
-		        }
+                    try {
+                        importTunnels(fn);
+                    } catch (IOException e) {
+						log.error("failed to import tunnels", e);
+                    }
+                }
 		      }
 		});
 		
@@ -284,19 +284,18 @@ public class TunnelsComposite extends Composite {
 			Color red = this.getDisplay().getSystemColor(SWT.COLOR_RED);
 			List<Tunnel> tunnels = session.getTunnels();
 			Collections.sort(tunnels);
-			for (Iterator<Tunnel> i = tunnels.iterator(); i.hasNext();) {
-				Tunnel tunnel = i.next();
-				TableItem tableItem = new TableItem(tunnelTable, SWT.NULL);
-				//tableItem.setText(new String[] { tunnel.getLocalAddress(), Integer.toString(tunnel.getLocalPort()), tunnel.getLocal() ? "->" : "<-", tunnel.getRemoteAddress(), Integer.toString(tunnel.getRemotePort()) });
-				tableItem.setText(new String[] { tunnel.getLocalAddress(),
-						Integer.toString(tunnel.getLocalPort()), 
-						tunnel.getLocal() ? "\u21D2" : "\u21D0",
-						tunnel.getRemoteAddress(),
-						Integer.toString(tunnel.getRemotePort()) });
-				if (tunnel.getException() != null) {
-					tableItem.setForeground(red);
-				}
-			}
+            for (Tunnel tunnel : tunnels) {
+                TableItem tableItem = new TableItem(tunnelTable, SWT.NULL);
+                //tableItem.setText(new String[] { tunnel.getLocalAddress(), Integer.toString(tunnel.getLocalPort()), tunnel.getLocal() ? "->" : "<-", tunnel.getRemoteAddress(), Integer.toString(tunnel.getRemotePort()) });
+                tableItem.setText(new String[]{tunnel.getLocalAddress(),
+                        Integer.toString(tunnel.getLocalPort()),
+                        tunnel.getLocal() ? "⇒" : "⇐",
+                        tunnel.getRemoteAddress(),
+                        Integer.toString(tunnel.getRemotePort())});
+                if (tunnel.getException() != null) {
+                    tableItem.setForeground(red);
+                }
+            }
 		}
 	}
 
@@ -332,14 +331,13 @@ public class TunnelsComposite extends Composite {
 	private void removeTunnel() {
 		int row = tunnelTable.getSelectionIndex();
 		if (row > -1) {
-			Tunnel tunnel = (Tunnel) session.getTunnels().remove(row);
+			Tunnel tunnel = session.getTunnels().remove(row);
 			updateTable();
 			listener.tunnelRemoved(session, tunnel);
 		}
 	}
 	
-	private void importTunnels(String csvPath) {
-		//List<Tunnel> tunnels = session.getTunnels();
+	private void importTunnels(String csvPath) throws IOException {
 		Set<Tunnel> importedTunnels = csvConfigImporter.readCsv(csvPath);
 		if (importedTunnels != null) {
 			if (importedTunnels.isEmpty()) {
@@ -375,29 +373,9 @@ public class TunnelsComposite extends Composite {
 			MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
     		messageBox.setText("Error");
     		messageBox.setMessage("Importing failed!\nCheck if columns = " + 
-    				Arrays.toString(csvConfigImporter.tunnelConfHeaders.toArray()));
+    				Arrays.toString(csvConfigImporter.getTunnelConfHeaders().toArray()));
     		messageBox.open();
 		}
-//		try {
-//			csvConfigImporter.readCsv(csvPath, session);
-//		} catch (Exception e) {
-//			//log.error(e);
-//			MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
-//    		messageBox.setText("Error");
-//    		messageBox.setMessage(e.getMessage());
-//    		int result = messageBox.open();
-    		//ret = (result == SWT.YES);
-//			Display.getDefault().syncExec(new Runnable() {
-//				@Override
-//				public void run() {
-//					MessageBox messageBox = new MessageBox(getShell()), SWT.ICON_WARNING | SWT.YES | SWT.NO);
-//	        		messageBox.setText("Warning");
-//	        		messageBox.setMessage(str);
-//	        		int result = messageBox.open();
-//	        		ret = (result == SWT.YES);
-//				}
-//			});
-//		}
 	}
 	
 	private void exportTunnels(String csvPath) {
@@ -425,7 +403,7 @@ public class TunnelsComposite extends Composite {
 			return new Image(this.getDisplay(), stream);
 		} finally {
 			try {
-				stream.close();
+				Objects.requireNonNull(stream).close();
 			} catch (IOException e) {
 				// ignore
 			}

@@ -7,6 +7,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    kotlin("jvm")
 }
 
 repositories {
@@ -21,12 +22,12 @@ dependencies {
     api(libs.com.github.mwiede.jsch)
     api(libs.commons.logging.commons.logging)
     api(libs.org.eclipse.swt.org.eclipse.swt.gtk.linux.x86.v64)
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 group = "org.programmerplanet"
 version = "0.7"
 description = "sshtunel-ng"
-java.sourceCompatibility = JavaVersion.VERSION_18
 
 publishing {
     publications.create<MavenPublication>("maven") {
@@ -40,4 +41,8 @@ tasks.withType<JavaCompile>() {
 
 tasks.withType<Javadoc>() {
     options.encoding = "UTF-8"
+}
+
+kotlin {
+    jvmToolchain(18)
 }

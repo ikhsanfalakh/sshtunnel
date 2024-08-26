@@ -18,10 +18,9 @@ package org.programmerplanet.sshtunnel.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -62,15 +61,10 @@ public class ConnectionManager {
 		STOP,
 		CHANGE
 	}
-	
-//	public ConnectionManager() {
-//		//JSch.setLogger(new MyLogger(log));
-//		JSch.setLogger(new SshLogger("/tmp"));
-//	}
 
-	private TrackedServerSocketFactory serverSocketFactory = new TrackedServerSocketFactory();
+	private final TrackedServerSocketFactory serverSocketFactory = new TrackedServerSocketFactory();
 	
-	private Map<Session, com.jcraft.jsch.Session> connections = new HashMap<Session, com.jcraft.jsch.Session>();
+	private final Map<Session, com.jcraft.jsch.Session> connections = new HashMap<Session, com.jcraft.jsch.Session>();
 
 	public void connect(Session session, Shell parent) throws ConnectionException {
 		log.info("Connecting session: " + session);
@@ -82,15 +76,14 @@ public class ConnectionManager {
 				File knownHosts = getKnownHostsFile();
 				jsch.setKnownHosts(knownHosts.getAbsolutePath());
 				
-				if (session.getIdentityPath() != null && session.getIdentityPath().trim().length() > 0) {
+				if (session.getIdentityPath() != null && !session.getIdentityPath().trim().isEmpty()) {
 					try {
-						if (session.getPassPhrase() != null && session.getPassPhrase().trim().length() > 0) {
+						if (session.getPassPhrase() != null && !session.getPassPhrase().trim().isEmpty()) {
 							jsch.addIdentity(session.getIdentityPath(), session.getPassPhrase());
 						} else {
 							jsch.addIdentity(session.getIdentityPath());
 						}
 					} catch (JSchException e) {
-						e.printStackTrace();
 						// Jsch does not support newer format, you may convert the key to the pem format:
 						// ssh-keygen -p -f key_file -m pem -P passphrase -N passphrase
 						//log.error("Invalid private key: " + session.getIdentityPath(), e);
@@ -100,13 +93,13 @@ public class ConnectionManager {
 				jschSession = jsch.getSession(session.getUsername(), session.getHostname(), session.getPort());
 				
 				// Set debug logger if set
-				if (session.getDebugLogPath() != null && session.getDebugLogPath().trim().length() > 0) {
+				if (session.getDebugLogPath() != null && !session.getDebugLogPath().trim().isEmpty()) {
 					jschSession.setLogger(new SshLogger(session.getDebugLogPath() 
 							+ File.separator + "sshtunnelng-" + session.getSessionName() + ".log"));
 				}
 			}
 			UserInfo userInfo = null;
-			if (session.getPassword() != null && session.getPassword().trim().length() > 0) {
+			if (session.getPassword() != null && !session.getPassword().trim().isEmpty()) {
 				userInfo = new DefaultUserInfo(parent, session.getPassword());
 			} else {
 				userInfo = new DefaultUserInfo(parent);
@@ -132,9 +125,8 @@ public class ConnectionManager {
 			jschSession.connect(TIMEOUT);
 
 			startTunnels(session, jschSession);
-		} catch (JSchException e) {
-			jschSession.disconnect();
-			jschSession = null;
+		} catch (JSchException | IOException e) {
+			Objects.requireNonNull(jschSession).disconnect();
 			throw new ConnectionException(e);
 		}
 		connections.put(session, jschSession);
@@ -149,15 +141,14 @@ public class ConnectionManager {
 	}
 
 	private void startTunnels(Session session, com.jcraft.jsch.Session jschSession) {
-		for (Iterator<Tunnel> i = session.getTunnels().iterator(); i.hasNext();) {
-			Tunnel tunnel = i.next();
-			try {
-				startTunnel(jschSession, tunnel);
-			} catch (Exception e) {
-				tunnel.setException(e);
-				log.error("Error starting tunnel: " + tunnel, e);
-			}
-		}
+        for (Tunnel tunnel : session.getTunnels()) {
+            try {
+                startTunnel(jschSession, tunnel);
+            } catch (Exception e) {
+                tunnel.setException(e);
+                log.error("Error starting tunnel: " + tunnel, e);
+            }
+        }
 	}
 
 	private void startTunnel(com.jcraft.jsch.Session jschSession, Tunnel tunnel) throws JSchException {
@@ -190,18 +181,18 @@ public class ConnectionManager {
 				}
 			} catch (JSchException e) {
 				status = -1;
-				e.printStackTrace();
+				log.error(e);
 			}
 		}
 		return status;
 	}
 	
-	public int startTunnelIfSessionConnected(Session session, Tunnel tunnel) {
-		return updateTunnelIfSessionConnected(session, TunnelUpdateState.START, tunnel, null);
+	public void startTunnelIfSessionConnected(Session session, Tunnel tunnel) {
+		updateTunnelIfSessionConnected(session, TunnelUpdateState.START, tunnel, null);
 	}
 	
-	public int stopTunnelIfSessionConnected(Session session, Tunnel tunnel) {
-		return updateTunnelIfSessionConnected(session, TunnelUpdateState.STOP, tunnel, null);
+	public void stopTunnelIfSessionConnected(Session session, Tunnel tunnel) {
+		updateTunnelIfSessionConnected(session, TunnelUpdateState.STOP, tunnel, null);
 	}
 	
 	public int changeTunnelIfSessionConnected(Session session, Tunnel tunnel, Tunnel prevTunnel) {
@@ -220,14 +211,13 @@ public class ConnectionManager {
 	}
 
 	private void stopTunnels(Session session, com.jcraft.jsch.Session jschSession) {
-		for (Iterator<Tunnel> i = session.getTunnels().iterator(); i.hasNext();) {
-			Tunnel tunnel = i.next();
-			try {
-				stopTunnel(jschSession, tunnel);
-			} catch (Exception e) {
-				log.error("Error stopping tunnel: " + tunnel, e);
-			}
-		}
+        for (Tunnel tunnel : session.getTunnels()) {
+            try {
+                stopTunnel(jschSession, tunnel);
+            } catch (Exception e) {
+                log.error("Error stopping tunnel: " + tunnel, e);
+            }
+        }
 	}
 
 	private void stopTunnel(com.jcraft.jsch.Session jschSession, Tunnel tunnel) throws JSchException {
@@ -240,10 +230,9 @@ public class ConnectionManager {
 	}
 
 	private void clearTunnelExceptions(Session session) {
-		for (Iterator<Tunnel> i = session.getTunnels().iterator(); i.hasNext();) {
-			Tunnel tunnel = i.next();
-			tunnel.setException(null);
-		}
+        for (Tunnel tunnel : session.getTunnels()) {
+            tunnel.setException(null);
+        }
 	}
 
 	public boolean isConnected(Session session) {
@@ -253,21 +242,17 @@ public class ConnectionManager {
 	
 	public Exception getSessionException(Session session) {
 		// Currently use keepAliveMsg
-		//boolean hasError = false;
 		Exception err = null;
 		com.jcraft.jsch.Session jschSession = connections.get(session);
-		if (jschSession != null ) {//&& !jschSession.isConnected()) {
+		if (jschSession != null ) {
 			try {
 				ChannelExec testChannel = (ChannelExec) jschSession.openChannel("exec");
 				testChannel.setCommand("true");
 				testChannel.connect();
 				testChannel.disconnect();
-				//jschSession.sendKeepAliveMsg();
 			} catch (Exception e) {
 				err = e;
-				//e.printStackTrace();
 			}
-			//hasError = true;
 		}
 		return err;
 	}
@@ -277,37 +262,22 @@ public class ConnectionManager {
 class SshLogger implements com.jcraft.jsch.Logger {
     static java.util.Hashtable<Integer, String> name = new java.util.Hashtable<Integer, String>();
     
-    private Logger logger = Logger.getLogger(SshLogger.class.getSimpleName());
+    private final Logger logger = Logger.getLogger(SshLogger.class.getSimpleName());
     
-    public SshLogger(String filePath) {
-		//this.logger = logger;
-		try {
-//			String jarPath = getClass()
-//			          .getProtectionDomain()
-//			          .getCodeSource()
-//			          .getLocation()
-//			          .toURI()
-//			          .getPath();
-			
-			//FileHandler fh = new FileHandler(jarPath + "/" + "sshtunnel.log");
-			FileHandler fh = new FileHandler(filePath);
-			SimpleFormatter formatter = new SimpleFormatter();  
-	        fh.setFormatter(formatter);  
-			logger.addHandler(fh);
-		} catch (SecurityException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+    public SshLogger(String filePath) throws IOException {
+		FileHandler fh = new FileHandler(filePath);
+		SimpleFormatter formatter = new SimpleFormatter();
+		fh.setFormatter(formatter);
+		logger.addHandler(fh);
 	}
     
     
     static{
-      name.put(new Integer(DEBUG), "DEBUG: ");
-      name.put(new Integer(INFO), "INFO: ");
-      name.put(new Integer(WARN), "WARN: ");
-      name.put(new Integer(ERROR), "ERROR: ");
-      name.put(new Integer(FATAL), "FATAL: ");
+      name.put(DEBUG, "DEBUG: ");
+      name.put(INFO, "INFO: ");
+      name.put(WARN, "WARN: ");
+      name.put(ERROR, "ERROR: ");
+      name.put(FATAL, "FATAL: ");
     }
     
     public boolean isEnabled(int level){
@@ -315,8 +285,6 @@ class SshLogger implements com.jcraft.jsch.Logger {
     }
     
     public void log(int level, String message){
-//      System.err.print(name.get(level));
-//      System.err.println(message);
     	switch (level) {
 		case INFO:
 			logger.info(message);
@@ -324,13 +292,10 @@ class SshLogger implements com.jcraft.jsch.Logger {
 		case WARN:
 			logger.warning(message);
 			break;
-		case ERROR:
+		case ERROR, FATAL:
 			logger.severe(message);
 			break;
-		case FATAL:
-			logger.severe(message);
-			break;
-		default:
+            default:
 			break;
 		}
     }
