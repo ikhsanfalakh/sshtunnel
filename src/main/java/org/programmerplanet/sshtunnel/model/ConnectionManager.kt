@@ -23,7 +23,6 @@ import com.jcraft.jsch.UserInfo
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.eclipse.swt.widgets.Shell
-import org.programmerplanet.sshtunnel.model.ConnectionException
 import org.programmerplanet.sshtunnel.ui.DefaultUserInfo
 import java.io.File
 import java.io.IOException

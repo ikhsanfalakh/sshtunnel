@@ -26,8 +26,8 @@ public class SessionConnectionMonitor implements Runnable {
 	private final Object lock = new Object();
 	private Thread thread;
 	private Boolean threadStopped;
-	private int monitorInterval;
-	private Map<String, Session> sessions;
+	private final int monitorInterval;
+	private final Map<String, Session> sessions;
 	private SshTunnelComposite sshTunnelComposite;
 
 	public SessionConnectionMonitor() {
@@ -35,7 +35,7 @@ public class SessionConnectionMonitor implements Runnable {
 	}
 
 	public SessionConnectionMonitor(int monitorInterval) {
-		sessions = new ConcurrentHashMap<String, Session>();
+		sessions = new ConcurrentHashMap<>();
 		threadStopped = false;
 		this.monitorInterval = monitorInterval;
 	}
@@ -52,15 +52,7 @@ public class SessionConnectionMonitor implements Runnable {
 		if (log.isWarnEnabled()) {
 			log.warn("Connection monitor is now running..");
 		}
-		// synchronized (this) {
-		//boolean stopped = false;
 		while (!threadStopped) {
-		//while (!stopped) {
-			//log.info("Checking connections..");
-			//synchronized (lock) {
-			//	stopped = threadStopped;
-				
-			//	if (!stopped) {
 			boolean anyRemoved = false;
 			Iterator<Entry<String, Session>> it = sessions.entrySet().iterator();
 			while (it.hasNext()) {
@@ -72,11 +64,7 @@ public class SessionConnectionMonitor implements Runnable {
 					}
 					if (sshTunnelComposite != null) {
 						final Session s = entry.getValue();
-						Display.getDefault().asyncExec(new Runnable() {
-							public void run() {
-								sshTunnelComposite.showDisconnectedMessage(s);
-						}
-					});
+						Display.getDefault().asyncExec(() -> sshTunnelComposite.showDisconnectedMessage(s));
 				}
 				it.remove();
 				if (!anyRemoved)
@@ -84,23 +72,14 @@ public class SessionConnectionMonitor implements Runnable {
 				}
 			}
 			if (sshTunnelComposite != null && anyRemoved) {
-				// sshTunnelComposite.disconnect(entry.getValue());
-				Display.getDefault().asyncExec(new Runnable() {
-					public void run() {
-						sshTunnelComposite.connectionStatusChanged();
-					}
-				});
+				Display.getDefault().asyncExec(() -> sshTunnelComposite.connectionStatusChanged());
 			}
-				//}
-			//}
 			try {
 				Thread.sleep(monitorInterval);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				log.error(e);
 			}
 		}
-		// notifyAll();
-		// }
 	}
 	
 	public void setSshTunnelComposite(SshTunnelComposite sshTunnelComposite) {
@@ -115,10 +94,6 @@ public class SessionConnectionMonitor implements Runnable {
 				thread.start();
 			}
 		}
-	}
-
-	public void setThreadStopped(boolean stop) {
-		threadStopped = stop;
 	}
 
 	public void stopMonitor() {

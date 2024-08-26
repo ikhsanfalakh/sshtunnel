@@ -36,7 +36,7 @@ import org.programmerplanet.sshtunnel.model.Session;
  */
 public class EditSessionDialog extends CustomDialog {
 
-	private Session session;
+	private final Session session;
 	private Text nameText;
 	private Text hostText;
 	private Text portText;
@@ -48,10 +48,8 @@ public class EditSessionDialog extends CustomDialog {
 	private Button compressionCheckbox;
 	private Text ciphersText;
 	private Button chooseCiphersCheckbox;
-	private Button privKeyButton;
-	private Text debugLogDirText;
-	private Button debugLogDirButton;
-	private static final String[] PRIVATE_KEY_NAMES = {"All Files"};
+    private Text debugLogDirText;
+    private static final String[] PRIVATE_KEY_NAMES = {"All Files"};
 	private static final String[] PRIVATE_KEY_EXT = {"*"};
 
 	public EditSessionDialog(Shell parent, Session session) {
@@ -65,7 +63,7 @@ public class EditSessionDialog extends CustomDialog {
 		layout.numColumns = 2;
 		parent.setLayout(layout);
 
-		GridData gridData = null;
+		GridData gridData;
 
 		Label nameLabel = new Label(parent, SWT.RIGHT);
 		nameLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
@@ -133,8 +131,8 @@ public class EditSessionDialog extends CustomDialog {
 //		Label privKeyLabel = new Label(parent, SWT.RIGHT);
 //		privKeyLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
 //		privKeyLabel.setText("Identity file:");
-		
-		privKeyButton = new Button(parent, SWT.PUSH);
+
+        Button privKeyButton = new Button(parent, SWT.PUSH);
 		privKeyButton.setText("Identify file");
 		// privKeyButton.setLayoutData(gridData);
 		privKeyButton.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
@@ -176,18 +174,14 @@ public class EditSessionDialog extends CustomDialog {
 				setChooseCiphers(chooseCiphersCheckbox.getSelection());
 			}
 		});
-		
-//		Label ciphersLabel = new Label(parent, SWT.RIGHT);
-//		ciphersLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-//		ciphersLabel.setText("Ciphers:");
-		
+
 		ciphersText = new Text(parent, SWT.SINGLE | SWT.BORDER);
 		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
 		gridData.widthHint = 200;
 		ciphersText.setLayoutData(gridData);
 		setChooseCiphers(false);
-		
-		debugLogDirButton = new Button(parent, SWT.PUSH);
+
+        Button debugLogDirButton = new Button(parent, SWT.PUSH);
 		debugLogDirButton.setText("Log directory");
 		debugLogDirButton.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
 		debugLogDirButton.addSelectionListener(new SelectionAdapter() {
@@ -201,15 +195,8 @@ public class EditSessionDialog extends CustomDialog {
 		    });
 		
 		debugLogDirText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		//debugLogDirText.setEnabled(false);
-		//gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		//gridData.widthHint = 200;
 		debugLogDirText.setLayoutData(gridData);
-		
-		//new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
-		
-//		Label compressionLabel = new Label(parent, SWT.RIGHT);
-//		compressionLabel.setText("");
+
 		new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
 		
 		compressionCheckbox = new Button(parent, SWT.CHECK);
@@ -327,7 +314,7 @@ public class EditSessionDialog extends CustomDialog {
 
 	private void setPassword(String password) {
 		passText.setText(password != null ? password : "");
-		setSavePassword(password != null && password.trim().length() > 0);
+		setSavePassword(password != null && !password.trim().isEmpty());
 	}
 	
 	private void setIdentityPath(String identityPath) {
@@ -340,7 +327,7 @@ public class EditSessionDialog extends CustomDialog {
 	
 	private void setCiphers(String ciphers) {
 		ciphersText.setText(ciphers != null ? ciphers : "");
-		setChooseCiphers(ciphers != null && ciphers.trim().length() > 0);
+		setChooseCiphers(ciphers != null && !ciphers.trim().isEmpty());
 	}
 	
 	private void setDebugLogDir(String dirPath) {

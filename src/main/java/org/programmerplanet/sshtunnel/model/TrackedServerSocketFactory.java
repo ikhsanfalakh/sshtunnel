@@ -26,9 +26,8 @@ public class TrackedServerSocketFactory implements ServerSocketFactory {
 
 	@Override
 	public ServerSocket createServerSocket(int port, int backlog, InetAddress bindAddr) throws IOException {
-		//ServerSocket socket = new ServerSocket(port, backlog, bindAddr);	
 		ServerSocket serverSocket = new CustomServerSocket(port, backlog, bindAddr);
-		String key = bindAddr.toString() + ":" + Integer.toString(port);
+		String key = bindAddr.toString() + ":" + port;
 		socketMap.put(key, serverSocket);
 		return serverSocket;
 	}
@@ -37,7 +36,7 @@ public class TrackedServerSocketFactory implements ServerSocketFactory {
 		try {
 			InetAddress bindAddr = InetAddress.getByName(normalize(addr));
 			
-			String key = bindAddr.toString() + ":" + Integer.toString(port);
+			String key = bindAddr.toString() + ":" + port;
 			ServerSocket socket = socketMap.get(key);
 			if (socket != null) {
 				CustomServerSocket customSocket = (CustomServerSocket) socket;
