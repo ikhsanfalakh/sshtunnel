@@ -13,115 +13,101 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.RowLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Dialog;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.SWT
+import org.eclipse.swt.events.SelectionAdapter
+import org.eclipse.swt.events.SelectionEvent
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.layout.GridLayout
+import org.eclipse.swt.layout.RowLayout
+import org.eclipse.swt.widgets.*
 
 /**
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public abstract class CustomDialog extends Dialog {
+abstract class CustomDialog(parent: Shell) : Dialog(parent, SWT.NONE) {
+    private var result = SWT.CANCEL
+    private var shell: Shell = Shell(parent, SWT.DIALOG_TRIM or SWT.APPLICATION_MODAL or SWT.RESIZE)
 
-	private int result = SWT.CANCEL;
-	private Shell shell;
+    fun open(): Int {
+        shell.text = text
+        shell.image = parent.image
+        shell.layout = GridLayout()
+        createContentComposite(shell)
+        createButtonBarComposite(shell)
+        shell.pack()
+        centerShell(parent, shell)
+        shell.open()
+        val display: Display = parent.display
+        while (!shell.isDisposed) {
+            if (!display.readAndDispatch()) display.sleep()
+        }
+        return result
+    }
 
-	public CustomDialog(Shell parent) {
-		super(parent, SWT.NONE);
-	}
+    private fun centerShell(parent: Shell, shell: Shell) {
+        val parentBounds = parent.bounds
+        val childBounds = shell.bounds
+        val x = parentBounds.x + (parentBounds.width - childBounds.width) / 2
+        val y = parentBounds.y + (parentBounds.height - childBounds.height) / 2
+        shell.setLocation(x, y)
+    }
 
-	public int open() {
-		Shell parent = this.getParent();
-		shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL | SWT.RESIZE);
-		shell.setText(getText());
-		shell.setImage(parent.getImage());
-		shell.setLayout(new GridLayout());
-		createContentComposite(shell);
-		createButtonBarComposite(shell);
-		shell.pack();
-		centerShell(parent, shell);
-		shell.open();
-		Display display = parent.getDisplay();
-		while (!shell.isDisposed()) {
-			if (!display.readAndDispatch())
-				display.sleep();
-		}
-		return result;
-	}
+    private fun createContentComposite(parent: Composite) {
+        val contentComposite = Composite(parent, SWT.NONE)
 
-	private void centerShell(Shell parent, Shell shell) {
-		Rectangle parentBounds = parent.getBounds();
-		Rectangle childBounds = shell.getBounds();
-		int x = parentBounds.x + (parentBounds.width - childBounds.width) / 2;
-		int y = parentBounds.y + (parentBounds.height - childBounds.height) / 2;
-		shell.setLocation(x, y);
-	}
+        val gridData = GridData()
+        gridData.grabExcessHorizontalSpace = true
+        gridData.horizontalAlignment = GridData.FILL
+        gridData.grabExcessVerticalSpace = true
+        gridData.verticalAlignment = GridData.FILL
+        contentComposite.layoutData = gridData
 
-	private void createContentComposite(Composite parent) {
-		Composite contentComposite = new Composite(parent, SWT.NONE);
+        initialize(contentComposite)
+    }
 
-		GridData gridData = new GridData();
-		gridData.grabExcessHorizontalSpace = true;
-		gridData.horizontalAlignment = GridData.FILL;
-		gridData.grabExcessVerticalSpace = true;
-		gridData.verticalAlignment = GridData.FILL;
-		contentComposite.setLayoutData(gridData);
+    private fun createButtonBarComposite(parent: Composite) {
+        val buttonBarComposite = Composite(parent, SWT.NONE)
 
-		initialize(contentComposite);
-	}
+        val gridData = GridData()
+        gridData.grabExcessHorizontalSpace = true
+        gridData.horizontalAlignment = GridData.CENTER
+        buttonBarComposite.layoutData = gridData
 
-	private void createButtonBarComposite(Composite parent) {
-		Composite buttonBarComposite = new Composite(parent, SWT.NONE);
+        val rowLayout = RowLayout()
+        rowLayout.pack = false
+        buttonBarComposite.layout = rowLayout
 
-		GridData gridData = new GridData();
-		gridData.grabExcessHorizontalSpace = true;
-		gridData.horizontalAlignment = GridData.CENTER;
-		buttonBarComposite.setLayoutData(gridData);
+        val okButton = Button(buttonBarComposite, SWT.PUSH)
+        okButton.text = "OK"
+        okButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                okPressed()
+            }
+        })
 
-		RowLayout rowLayout = new RowLayout();
-		rowLayout.pack = false;
-		buttonBarComposite.setLayout(rowLayout);
+        shell.defaultButton = okButton
 
-		Button okButton = new Button(buttonBarComposite, SWT.PUSH);
-		okButton.setText("OK");
-		okButton.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				okPressed();
-			}
-		});
+        val cancelButton = Button(buttonBarComposite, SWT.PUSH)
+        cancelButton.text = "Cancel"
+        cancelButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                cancelPressed()
+            }
+        })
+    }
 
-		this.shell.setDefaultButton(okButton);
+    protected open fun okPressed() {
+        result = SWT.OK
+        shell.close()
+    }
 
-		Button cancelButton = new Button(buttonBarComposite, SWT.PUSH);
-		cancelButton.setText("Cancel");
-		cancelButton.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				cancelPressed();
-			}
-		});
-	}
+    protected fun cancelPressed() {
+        result = SWT.CANCEL
+        shell.close()
+    }
 
-	protected void okPressed() {
-		result = SWT.OK;
-		shell.close();
-	}
-
-	protected void cancelPressed() {
-		result = SWT.CANCEL;
-		shell.close();
-	}
-
-	protected abstract void initialize(Composite parent);
-
+    protected abstract fun initialize(parent: Composite)
 }

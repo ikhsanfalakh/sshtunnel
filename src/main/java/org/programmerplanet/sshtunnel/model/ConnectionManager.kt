@@ -99,7 +99,7 @@ class ConnectionManager {
         }
 
         @Throws(ConnectionException::class)
-        fun connect(session: Session, parent: Shell?) {
+        fun connect(session: Session, parent: Shell) {
             log.info("Connecting session: $session")
             clearTunnelExceptions(session)
             var jschSession: com.jcraft.jsch.Session? = connections[session]

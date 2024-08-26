@@ -13,129 +13,98 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.Shell;
-
-import com.jcraft.jsch.UserInfo;
+import com.jcraft.jsch.UserInfo
+import org.eclipse.swt.SWT
+import org.eclipse.swt.widgets.Display
+import org.eclipse.swt.widgets.MessageBox
+import org.eclipse.swt.widgets.Shell
 
 /**
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class DefaultUserInfo implements UserInfo {
+class DefaultUserInfo @JvmOverloads constructor(private val parent: Shell, password: String? = null) :
+    UserInfo {
+    private var password: String?
+    private val savedPassword: Boolean
+    private var attempt = 0
 
-	private static final int MAX_ATTEMPTS = 3;
+    init {
+        this.password = password
+        this.savedPassword = true
+    }
 
-	private Shell parent;
-	private String password;
-	private boolean savedPassword;
-	private int attempt = 0;
-
-	public DefaultUserInfo(Shell parent) {
-		this(parent, null);
-	}
-
-	public DefaultUserInfo(Shell parent, String password) {
-		this.parent = parent;
-		this.password = password;
-		this.savedPassword = (password != null);
-	}
-	
-	public boolean promptPassword(String message) {
-		attempt++;
-		if (attempt > MAX_ATTEMPTS) {
-			return false;
-		} else if (savedPassword && attempt == 1) {
-			return true;
-		} else {
-			PromptRunnable promptDialog = new PromptRunnable() {
-                @Override
-                public void run() {
-					PasswordDialog dialog = new PasswordDialog(parent);
-					dialog.setMessage(message);
-					int result = dialog.open();
-					if (result == SWT.OK) {
-						password = dialog.getPassword();
-						//return true;
-						ret = true;
-					}
-//					} else {
-//						//return false;
-//						ret = false;
-//					}
+    override fun promptPassword(message: String): Boolean {
+        attempt++
+        if (attempt > MAX_ATTEMPTS) {
+            return false
+        } else if (savedPassword && attempt == 1) {
+            return true
+        } else {
+            val promptDialog: PromptRunnable = object : PromptRunnable() {
+                override fun run() {
+                    val dialog = PasswordDialog(parent)
+                    dialog.message = message
+                    val result: Int = dialog.open()
+                    if (result == SWT.OK) {
+                        password = dialog.password
+                        returnState = true
+                    }
                 }
-			};
-			Display.getDefault().syncExec(promptDialog);
-			return promptDialog.getReturnState();
-		}
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public boolean promptPassphrase(String message) {
-		return true;
-	}
-
-	public String getPassphrase() {
-		return null;
-	}
-
-	public boolean promptYesNo(String str) {
-//		MessageBox messageBox = new MessageBox(parent, SWT.ICON_WARNING | SWT.YES | SWT.NO);
-//		messageBox.setText("Warning");
-//		messageBox.setMessage(str);
-//		int result = messageBox.open();
-//		return result == SWT.YES;
-		PromptRunnable promptDialog = new PromptRunnable() {
-            @Override
-            public void run() {
-            	MessageBox messageBox = new MessageBox(parent, SWT.ICON_WARNING | SWT.YES | SWT.NO);
-        		messageBox.setText("Warning");
-        		messageBox.setMessage(str);
-        		int result = messageBox.open();
-        		ret = (result == SWT.YES);
             }
-		};
-		Display.getDefault().syncExec(promptDialog);
-		return promptDialog.getReturnState();
-		
-	}
+            Display.getDefault().syncExec(promptDialog)
+            return promptDialog.returnState
+        }
+    }
 
-	public void showMessage(String message) {
-//		MessageBox messageBox = new MessageBox(parent, SWT.ICON_INFORMATION | SWT.OK);
-//		messageBox.setText("Message");
-//		messageBox.setMessage(message);
-//		messageBox.open();
-		
-		PromptRunnable promptDialog = new PromptRunnable() {
-            @Override
-            public void run() {
-        		MessageBox messageBox = new MessageBox(parent, SWT.ICON_INFORMATION | SWT.OK);
-        		messageBox.setText("Message");
-        		messageBox.setMessage(message);
-        		messageBox.open();
+    override fun getPassword(): String? {
+        return password
+    }
+
+    override fun promptPassphrase(message: String): Boolean {
+        return true
+    }
+
+    override fun getPassphrase(): String? {
+        return null
+    }
+
+    override fun promptYesNo(str: String): Boolean {
+        val promptDialog: PromptRunnable = object : PromptRunnable() {
+            override fun run() {
+                val messageBox = MessageBox(parent, SWT.ICON_WARNING or SWT.YES or SWT.NO)
+                messageBox.text = "Warning"
+                messageBox.message = str
+                val result = messageBox.open()
+                returnState = (result == SWT.YES)
             }
-		};
-		Display.getDefault().syncExec(promptDialog);
-	}
-	
-	class PromptRunnable implements Runnable {
-		boolean ret = false;
-		
-		public boolean getReturnState(){
-			return ret;
-		}
+        }
+        Display.getDefault().syncExec(promptDialog)
+        return promptDialog.returnState
+    }
 
-		@Override
-		public void run() {
-			// TODO Auto-generated method stub
-		}
-	}
+    override fun showMessage(message: String) {
+        val promptDialog: PromptRunnable = object : PromptRunnable() {
+            override fun run() {
+                val messageBox = MessageBox(parent, SWT.ICON_INFORMATION or SWT.OK)
+                messageBox.text = "Message"
+                messageBox.message = message
+                messageBox.open()
+            }
+        }
+        Display.getDefault().syncExec(promptDialog)
+    }
 
+    internal open class PromptRunnable : Runnable {
+        var returnState: Boolean = false
+
+        override fun run() {
+        }
+    }
+
+    companion object {
+        private const val MAX_ATTEMPTS = 3
+    }
 }
