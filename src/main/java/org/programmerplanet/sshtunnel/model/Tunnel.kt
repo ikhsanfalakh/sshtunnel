@@ -68,11 +68,11 @@ class Tunnel : Comparable<Tunnel> {
         return Objects.hash(localAddress, localPort)
     }
 
-    override fun equals(obj: Any?): Boolean {
-        if (this === obj) return true
-        if (obj == null) return false
-        if (javaClass != obj.javaClass) return false
-        val other: Tunnel = obj as Tunnel
-        return localAddress == other.localAddress && localPort == other.localPort
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null) return false
+        if (javaClass != other.javaClass) return false
+        val other0: Tunnel = other as Tunnel
+        return localAddress == other0.localAddress && localPort == other0.localPort
     }
 }

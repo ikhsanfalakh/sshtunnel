@@ -254,11 +254,7 @@ public class SshTunnelComposite extends Composite {
         connectButton.addSelectionListener(new SelectionAdapter() {
             public void widgetSelected(SelectionEvent e) {
                 Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = new Runnable() {
-                    public void run() {
-                        connect();
-                    }
-                };
+                Runnable runnable = () -> connect();
                 display.asyncExec(runnable);
             }
         });
@@ -266,11 +262,7 @@ public class SshTunnelComposite extends Composite {
         disconnectButton.addSelectionListener(new SelectionAdapter() {
             public void widgetSelected(SelectionEvent e) {
                 Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = new Runnable() {
-                    public void run() {
-                        disconnect();
-                    }
-                };
+                Runnable runnable = () -> disconnect();
                 display.asyncExec(runnable);
             }
         });
@@ -278,11 +270,7 @@ public class SshTunnelComposite extends Composite {
         connectAllButton.addSelectionListener(new SelectionAdapter() {
             public void widgetSelected(SelectionEvent e) {
                 Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = new Runnable() {
-                    public void run() {
-                        connectAll();
-                    }
-                };
+                Runnable runnable = () -> connectAll();
                 display.asyncExec(runnable);
             }
         });
@@ -290,11 +278,7 @@ public class SshTunnelComposite extends Composite {
         disconnectAllButton.addSelectionListener(new SelectionAdapter() {
             public void widgetSelected(SelectionEvent e) {
                 Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = new Runnable() {
-                    public void run() {
-                        disconnectAll();
-                    }
-                };
+                Runnable runnable = () -> disconnectAll();
                 display.asyncExec(runnable);
             }
         });
@@ -393,20 +377,10 @@ public class SshTunnelComposite extends Composite {
                     } catch (Exception ignored) {
 
                     }
-                    Display.getDefault().asyncExec(new Runnable() {
-                        @Override
-                        public void run() {
-                            showErrorMessage("Unable to connect to '" + session.sessionName + "'", ce);
-                        }
-                    });
+                    Display.getDefault().asyncExec(() -> showErrorMessage("Unable to connect to '" + session.sessionName + "'", ce));
                 }
 
-                Display.getDefault().asyncExec(new Runnable() {
-                    @Override
-                    public void run() {
-                        connectionStatusChanged();
-                    }
-                });
+                Display.getDefault().asyncExec(this::connectionStatusChanged);
             }).start();
         }
     }
@@ -472,20 +446,10 @@ public class SshTunnelComposite extends Composite {
                 }
 
                 final Session failedSession = sessionToConnect;
-                Display.getDefault().asyncExec(new Runnable() {
-                    @Override
-                    public void run() {
-                        showErrorMessage("Unable to connect to '" + failedSession.sessionName + "'", ce);
-                    }
-                });
+                Display.getDefault().asyncExec(() -> showErrorMessage("Unable to connect to '" + failedSession.sessionName + "'", ce));
             }
 
-            Display.getDefault().asyncExec(new Runnable() {
-                @Override
-                public void run() {
-                    connectionStatusChanged();
-                }
-            });
+            Display.getDefault().asyncExec(this::connectionStatusChanged);
         }).start();
     }
 

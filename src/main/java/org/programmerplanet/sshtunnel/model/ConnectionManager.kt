@@ -38,10 +38,15 @@ import java.util.logging.SimpleFormatter
  * @author [Mulya Agung](agungm@outlook.com)
  */
 class ConnectionManager {
-    internal enum class TunnelUpdateState {
-        START,
-        STOP,
-        CHANGE
+    internal sealed class TunnelUpdateState {
+        data object START : TunnelUpdateState()
+        data object STOP : TunnelUpdateState()
+        data object CHANGE : TunnelUpdateState()
+        companion object {
+            fun values(): Array<TunnelUpdateState> {
+                return arrayOf(START, STOP, CHANGE)
+            }
+        }
     }
 
     companion object {
@@ -278,17 +283,6 @@ internal class SshLogger(filePath: String) : Logger {
         }
     }
 
-    companion object {
-        var name: Hashtable<Int, String> = Hashtable()
-
-        init {
-            name[Logger.DEBUG] = "DEBUG: "
-            name[Logger.INFO] = "INFO: "
-            name[Logger.WARN] = "WARN: "
-            name[Logger.ERROR] = "ERROR: "
-            name[Logger.FATAL] = "FATAL: "
-        }
-    }
 }
 
 

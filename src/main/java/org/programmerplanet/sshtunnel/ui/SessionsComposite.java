@@ -18,7 +18,6 @@ package org.programmerplanet.sshtunnel.ui;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.swt.SWT;
@@ -54,12 +53,11 @@ public class SessionsComposite extends Composite {
 	private static final String EDIT_IMAGE_PATH = "/images/edit.png";
 	private static final String DELETE_IMAGE_PATH = "/images/delete.png";
 
-	private List<Session> sessions;
+	private final List<Session> sessions;
 	private Table sessionTable;
-	private Button addSessionButton;
-	private Button editSessionButton;
+    private Button editSessionButton;
 	private Button removeSessionButton;
-	private SessionChangeListener listener;
+	private final SessionChangeListener listener;
 
 	private Image connectedImage;
 	private Image disconnectedImage;
@@ -97,7 +95,7 @@ public class SessionsComposite extends Composite {
 		gridData.horizontalAlignment = GridData.END;
 		buttonBarComposite.setLayoutData(gridData);
 
-		addSessionButton = new Button(buttonBarComposite, SWT.PUSH);
+        Button addSessionButton = new Button(buttonBarComposite, SWT.PUSH);
 		addSessionButton.setText("Add");
 		addSessionButton.setToolTipText("Add Session");
 		addSessionButton.setImage(addImage);
@@ -198,7 +196,7 @@ public class SessionsComposite extends Composite {
 				removeSessionButton.setEnabled(row > -1);
 				Session session = null;
 				if (row > -1) {
-					session = (Session) sessions.get(row);
+					session = sessions.get(row);
 				}
 				listener.sessionSelectionChanged(session);
 			}
@@ -214,28 +212,22 @@ public class SessionsComposite extends Composite {
 	}
 
 	private Image loadImage(String path) {
-		InputStream stream = SessionsComposite.class.getResourceAsStream(path);
-		try {
-			return new Image(this.getDisplay(), stream);
-		} finally {
-			try {
-				stream.close();
-			} catch (IOException e) {
-				// ignore
-			}
-		}
-	}
+        try (InputStream stream = SessionsComposite.class.getResourceAsStream(path)) {
+            return new Image(this.getDisplay(), stream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 	public void updateTable() {
 		sessionTable.removeAll();
 		Collections.sort(sessions);
-		for (Iterator<Session> i = sessions.iterator(); i.hasNext();) {
-			Session session = i.next();
-			TableItem tableItem = new TableItem(sessionTable, SWT.NULL);
-			tableItem.setText(new String[] { "", session.sessionName, session.hostname, Integer.toString(session.port), session.username});
-			Image image = ConnectionManager.Companion.isConnected(session) ? connectedImage : disconnectedImage;
-			tableItem.setImage(0, image);
-		}
+        for (Session session : sessions) {
+            TableItem tableItem = new TableItem(sessionTable, SWT.NULL);
+            tableItem.setText(new String[]{"", session.sessionName, session.hostname, Integer.toString(session.port), session.username});
+            Image image = ConnectionManager.Companion.isConnected(session) ? connectedImage : disconnectedImage;
+            tableItem.setImage(0, image);
+        }
 	}
 
 	private void addSession() {
@@ -252,7 +244,7 @@ public class SessionsComposite extends Composite {
 	private void editSession() {
 		int row = sessionTable.getSelectionIndex();
 		if (row > -1) {
-			Session session = (Session) sessions.get(row);
+			Session session = sessions.get(row);
 			EditSessionDialog dialog = new EditSessionDialog(this.getShell(), session);
 			int result = dialog.open();
 			if (result == SWT.OK) {
@@ -265,7 +257,7 @@ public class SessionsComposite extends Composite {
 	private void removeSession() {
 		int row = sessionTable.getSelectionIndex();
 		if (row > -1) {
-			Session session = (Session) sessions.remove(row);
+			Session session = sessions.remove(row);
 			updateTable();
 			listener.sessionRemoved(session);
 		}

@@ -104,11 +104,6 @@ public class EditSessionDialog extends CustomDialog {
 		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
 		gridData.widthHint = 200;
 		userText.setLayoutData(gridData);
-		//new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
-
-//		Label savePassLabel = new Label(parent, SWT.RIGHT);
-//		savePassLabel.setText("");
-
 		savePassCheckbox = new Button(parent, SWT.CHECK);
 		savePassCheckbox.setText("Password");
 		savePassCheckbox.addSelectionListener(new SelectionAdapter() {
@@ -117,24 +112,13 @@ public class EditSessionDialog extends CustomDialog {
 			}
 		});
 
-//		Label passLabel = new Label(parent, SWT.RIGHT);
-//		passLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-//		passLabel.setText("Password:");
-
 		passText = new Text(parent, SWT.SINGLE | SWT.BORDER | SWT.PASSWORD);
 		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
 		gridData.widthHint = 200;
 		passText.setLayoutData(gridData);
 		setSavePassword(false);
-		//new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
-		
-//		Label privKeyLabel = new Label(parent, SWT.RIGHT);
-//		privKeyLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-//		privKeyLabel.setText("Identity file:");
-
         Button privKeyButton = new Button(parent, SWT.PUSH);
 		privKeyButton.setText("Identify file");
-		// privKeyButton.setLayoutData(gridData);
 		privKeyButton.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
 		privKeyButton.addSelectionListener(new SelectionAdapter() {
 		      public void widgetSelected(SelectionEvent event) {
@@ -161,10 +145,6 @@ public class EditSessionDialog extends CustomDialog {
 		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
 		gridData.widthHint = 200;
 		passPhraseText.setLayoutData(gridData);
-		//new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
-		
-//		Label chooseCiphersLabel = new Label(parent, SWT.RIGHT);
-//		chooseCiphersLabel.setText("");
 		
 		chooseCiphersCheckbox = new Button(parent, SWT.CHECK);
 		chooseCiphersCheckbox.setText("Ciphers");
