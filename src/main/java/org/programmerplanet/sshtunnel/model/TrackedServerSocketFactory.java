@@ -12,9 +12,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.jcraft.jsch.ServerSocketFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class TrackedServerSocketFactory implements ServerSocketFactory {
-	private Map<String, ServerSocket> socketMap;
+	private static final Log log = LogFactory.getLog(TrackedServerSocketFactory.class);
+
+	private final Map<String, ServerSocket> socketMap;
 	
 	public TrackedServerSocketFactory() {
 		this.socketMap = new HashMap<>();
@@ -41,19 +45,19 @@ public class TrackedServerSocketFactory implements ServerSocketFactory {
 				try {
 					customSocket.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error(e);
 				} finally {
 					socketMap.remove(key);
 				}
 			}
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			log.error(e);
 		}
 	}
 	
 	public static String normalize(String address){
 	    if(address!=null){
-	      if(address.length()==0 || address.equals("*"))
+	      if(address.isEmpty() || address.equals("*"))
 	        address="0.0.0.0";
 	      else if(address.equals("localhost"))
 	        address="127.0.0.1";
@@ -64,8 +68,9 @@ public class TrackedServerSocketFactory implements ServerSocketFactory {
 }
 
 class CustomServerSocket extends ServerSocket {
+	private static final Log log = LogFactory.getLog(CustomServerSocket.class);
 
-	private Map<String, List<Socket>> tunnelSockets;
+	private final Map<String, List<Socket>> tunnelSockets;
 	
 	public CustomServerSocket(int port, int backlog, InetAddress bindAddr) throws IOException {
 		super(port, backlog, bindAddr);
@@ -92,7 +97,7 @@ class CustomServerSocket extends ServerSocket {
 				try {
 					socket.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error(e);
 				}
 			}
 			tunnelSockets.remove(key);

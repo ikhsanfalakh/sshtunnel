@@ -103,19 +103,19 @@ public class EditTunnelDialog extends CustomDialog {
 		remoteRadioButton = new Button(directionComposite, SWT.RADIO);
 		remoteRadioButton.setText("Remote");
 
-		setLocalAddress(tunnel.getLocalAddress());
-		setLocalPort(tunnel.getLocalPort());
-		setRemoteAddress(tunnel.getRemoteAddress());
-		setRemotePort(tunnel.getRemotePort());
-		setLocal(tunnel.getLocal());
+		setLocalAddress(tunnel.localAddress);
+		setLocalPort(tunnel.localPort);
+		setRemoteAddress(tunnel.remoteAddress);
+		setRemotePort(tunnel.remotePort);
+		setLocal(tunnel.local);
 	}
 
 	protected void okPressed() {
-		tunnel.setLocalAddress(getLocalAddress());
-		tunnel.setLocalPort(getLocalPort());
-		tunnel.setRemoteAddress(getRemoteAddress());
-		tunnel.setRemotePort(getRemotePort());
-		tunnel.setLocal(getLocal());
+		tunnel.localAddress = getLocalAddress();
+		tunnel.localPort = getLocalPort();
+		tunnel.remoteAddress = getRemoteAddress();
+		tunnel.remotePort = getRemotePort();
+		tunnel.local = getLocal();
 		super.okPressed();
 	}
 

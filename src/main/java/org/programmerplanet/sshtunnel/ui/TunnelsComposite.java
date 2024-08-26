@@ -79,16 +79,9 @@ public class TunnelsComposite extends Composite {
 	private Image importImage;
 	private Image exportImage;
 	
-	private Shell shell;
+	private final Shell shell;
 	private final CsvConfigImporter csvConfigImporter;
 
-	public TunnelsComposite(Composite parent, int style, TunnelChangeListener listener) {
-		super(parent, style);
-		this.listener = listener;
-		initialize();
-		csvConfigImporter = new CsvConfigImporter();
-	}
-	
 	public TunnelsComposite(Composite parent, Shell shell, int style, TunnelChangeListener listener) {
 		super(parent, style);
 		this.listener = listener;
@@ -271,7 +264,7 @@ public class TunnelsComposite extends Composite {
 				removeTunnelButton.setEnabled(row > -1);
 				Tunnel tunnel = null;
 				if (row > -1) {
-					tunnel = (Tunnel) session.getTunnels().get(row);
+					tunnel = session.tunnels.get(row);
 				}
 				listener.tunnelSelectionChanged(tunnel);
 			}
@@ -282,17 +275,17 @@ public class TunnelsComposite extends Composite {
 		tunnelTable.removeAll();
 		if (session != null) {
 			Color red = this.getDisplay().getSystemColor(SWT.COLOR_RED);
-			List<Tunnel> tunnels = session.getTunnels();
+			List<Tunnel> tunnels = session.tunnels;
 			Collections.sort(tunnels);
             for (Tunnel tunnel : tunnels) {
                 TableItem tableItem = new TableItem(tunnelTable, SWT.NULL);
                 //tableItem.setText(new String[] { tunnel.getLocalAddress(), Integer.toString(tunnel.getLocalPort()), tunnel.getLocal() ? "->" : "<-", tunnel.getRemoteAddress(), Integer.toString(tunnel.getRemotePort()) });
-                tableItem.setText(new String[]{tunnel.getLocalAddress(),
-                        Integer.toString(tunnel.getLocalPort()),
-                        tunnel.getLocal() ? "⇒" : "⇐",
-                        tunnel.getRemoteAddress(),
-                        Integer.toString(tunnel.getRemotePort())});
-                if (tunnel.getException() != null) {
+                tableItem.setText(new String[]{tunnel.localAddress,
+                        Integer.toString(tunnel.localPort),
+                        tunnel.local ? "⇒" : "⇐",
+						tunnel.remoteAddress,
+                        Integer.toString(tunnel.remotePort)});
+                if (tunnel.exception != null) {
                     tableItem.setForeground(red);
                 }
             }
@@ -304,7 +297,7 @@ public class TunnelsComposite extends Composite {
 		EditTunnelDialog dialog = new EditTunnelDialog(getShell(), tunnel);
 		int result = dialog.open();
 		if (result == SWT.OK) {
-			session.getTunnels().add(tunnel);
+			session.tunnels.add(tunnel);
 			updateTable();
 			listener.tunnelAdded(session, tunnel);
 		}
@@ -313,7 +306,7 @@ public class TunnelsComposite extends Composite {
 	private void editTunnel() {
 		int row = tunnelTable.getSelectionIndex();
 		if (row > -1) {
-			Tunnel tunnel = (Tunnel) session.getTunnels().get(row);
+			Tunnel tunnel = session.tunnels.get(row);
 			Tunnel prevTunnel = tunnel.copy();
 			EditTunnelDialog dialog = new EditTunnelDialog(getShell(), tunnel);
 			int result = dialog.open();
@@ -331,7 +324,7 @@ public class TunnelsComposite extends Composite {
 	private void removeTunnel() {
 		int row = tunnelTable.getSelectionIndex();
 		if (row > -1) {
-			Tunnel tunnel = session.getTunnels().remove(row);
+			Tunnel tunnel = session.tunnels.remove(row);
 			updateTable();
 			listener.tunnelRemoved(session, tunnel);
 		}
@@ -355,14 +348,14 @@ public class TunnelsComposite extends Composite {
         		boolean proceed = (result == SWT.YES);
         		
         		if (proceed) {
-					importedTunnels.addAll(session.getTunnels());
-					Iterator<Tunnel> it = session.getTunnels().iterator();
+					importedTunnels.addAll(session.tunnels);
+					Iterator<Tunnel> it = session.tunnels.iterator();
 					while (it.hasNext()) {
 						listener.tunnelRemoved(session, it.next());
 						it.remove();
 					}
 					for (Tunnel tunnel: importedTunnels) {
-						session.getTunnels().add(tunnel);
+						session.tunnels.add(tunnel);
 						listener.tunnelAdded(session, tunnel);
 					}
 					updateTable();
@@ -380,7 +373,7 @@ public class TunnelsComposite extends Composite {
 	
 	private void exportTunnels(String csvPath) {
 		try {
-			csvConfigImporter.writeCsv(session.getTunnels(), csvPath);
+			csvConfigImporter.writeCsv(session.tunnels, csvPath);
 		} catch(Exception e) {
 			MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
     		messageBox.setText("Error");

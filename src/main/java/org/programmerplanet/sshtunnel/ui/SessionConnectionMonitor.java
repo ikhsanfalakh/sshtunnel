@@ -65,8 +65,8 @@ public class SessionConnectionMonitor implements Runnable {
 			Iterator<Entry<String, Session>> it = sessions.entrySet().iterator();
 			while (it.hasNext()) {
 				Entry<String, Session> entry = it.next();
-				if (!ConnectionManager.getInstance().isConnected(entry.getValue())) {
-					ConnectionManager.getInstance().disconnect(entry.getValue());
+				if (!ConnectionManager.Companion.isConnected(entry.getValue())) {
+					ConnectionManager.Companion.disconnect(entry.getValue());
 					if (log.isWarnEnabled()) {
 						log.warn("Session " + entry.getKey() + " has disconnected.");
 					}

@@ -63,7 +63,7 @@ class Configuration {
             properties.setProperty("$sessionKey.username", session.username)
             if (session.password != null) {
                 val keyString = createKeyString()
-                val encryptedPassword = encrypt(session.password, keyString!!)
+                val encryptedPassword = encrypt(session.password!!, keyString!!)
                 properties.setProperty("$sessionKey.key", keyString)
                 properties.setProperty("$sessionKey.password", encryptedPassword)
             }
@@ -74,7 +74,7 @@ class Configuration {
 
             if (session.passPhrase != null) {
                 val keyString = createKeyString()
-                val encryptedPassphrase = encrypt(session.passPhrase, keyString!!)
+                val encryptedPassphrase = encrypt(session.passPhrase!!, keyString!!)
                 properties.setProperty("$sessionKey.passphraseKey", keyString)
                 properties.setProperty("$sessionKey.passphrase", encryptedPassphrase)
             }

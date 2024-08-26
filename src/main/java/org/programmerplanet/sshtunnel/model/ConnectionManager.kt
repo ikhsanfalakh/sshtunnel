@@ -14,291 +14,282 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.model;
+package org.programmerplanet.sshtunnel.model
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.logging.FileHandler;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.eclipse.swt.widgets.Shell;
-import org.programmerplanet.sshtunnel.ui.DefaultUserInfo;
-
-import com.jcraft.jsch.ChannelExec;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.UserInfo;
+import com.jcraft.jsch.JSch
+import com.jcraft.jsch.JSchException
+import com.jcraft.jsch.Logger
+import com.jcraft.jsch.UserInfo
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
+import org.eclipse.swt.widgets.Shell
+import org.programmerplanet.sshtunnel.model.ConnectionException
+import org.programmerplanet.sshtunnel.ui.DefaultUserInfo
+import java.io.File
+import java.io.IOException
+import java.util.*
+import java.util.logging.FileHandler
+import java.util.logging.SimpleFormatter
 
 /**
  * Responsible for connecting and disconnecting ssh connections and the
  * underlying tunnels.
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
- * @author <a href="agungm@outlook.com">Mulya Agung</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
+ * @author [Mulya Agung](agungm@outlook.com)
  */
-public class ConnectionManager {
+class ConnectionManager {
+    internal enum class TunnelUpdateState {
+        START,
+        STOP,
+        CHANGE
+    }
 
-	private static final Log log = LogFactory.getLog(ConnectionManager.class);
+    companion object {
+        private val log: Log = LogFactory.getLog(ConnectionManager::class.java)
 
-	private static final int TIMEOUT = 20000;
-	private static final int KEEP_ALIVE_INTERVAL = 40000;
-	private static final String DEF_CIPHERS = "aes128-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-cbc,aes128-ctr";
+        private const val TIMEOUT = 20000
+        private const val KEEP_ALIVE_INTERVAL = 40000
+        private const val DEF_CIPHERS = "aes128-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-cbc,aes128-ctr"
 
-	private static final ConnectionManager INSTANCE = new ConnectionManager();
-	
-	public static ConnectionManager getInstance() {
-		return INSTANCE;
-	}
-	
-	enum TunnelUpdateState {
-		START,
-		STOP,
-		CHANGE
-	}
+        private val serverSocketFactory = TrackedServerSocketFactory()
 
-	private final TrackedServerSocketFactory serverSocketFactory = new TrackedServerSocketFactory();
-	
-	private final Map<Session, com.jcraft.jsch.Session> connections = new HashMap<Session, com.jcraft.jsch.Session>();
+        private val connections: MutableMap<Session, com.jcraft.jsch.Session?> = HashMap()
 
-	public void connect(Session session, Shell parent) throws ConnectionException {
-		log.info("Connecting session: " + session);
-		clearTunnelExceptions(session);
-		com.jcraft.jsch.Session jschSession = connections.get(session);
-		try {
-			if (jschSession == null) {
-				JSch jsch = new JSch();
-				File knownHosts = getKnownHostsFile();
-				jsch.setKnownHosts(knownHosts.getAbsolutePath());
-				
-				if (session.getIdentityPath() != null && !session.getIdentityPath().trim().isEmpty()) {
-					try {
-						if (session.getPassPhrase() != null && !session.getPassPhrase().trim().isEmpty()) {
-							jsch.addIdentity(session.getIdentityPath(), session.getPassPhrase());
-						} else {
-							jsch.addIdentity(session.getIdentityPath());
-						}
-					} catch (JSchException e) {
-						// Jsch does not support newer format, you may convert the key to the pem format:
-						// ssh-keygen -p -f key_file -m pem -P passphrase -N passphrase
-						//log.error("Invalid private key: " + session.getIdentityPath(), e);
-						throw new ConnectionException(e);
-					}
-				}
-				jschSession = jsch.getSession(session.getUsername(), session.getHostname(), session.getPort());
-				
-				// Set debug logger if set
-				if (session.getDebugLogPath() != null && !session.getDebugLogPath().trim().isEmpty()) {
-					jschSession.setLogger(new SshLogger(session.getDebugLogPath() 
-							+ File.separator + "sshtunnelng-" + session.getSessionName() + ".log"));
-				}
-			}
-			UserInfo userInfo = null;
-			if (session.getPassword() != null && !session.getPassword().trim().isEmpty()) {
-				userInfo = new DefaultUserInfo(parent, session.getPassword());
-			} else {
-				userInfo = new DefaultUserInfo(parent);
-			}
-			
-			jschSession.setUserInfo(userInfo);
-			jschSession.setServerAliveInterval(KEEP_ALIVE_INTERVAL);
-			jschSession.setServerAliveCountMax(2);
-			
-			if (session.getCiphers() != null && !session.getCiphers().isEmpty()) {
-				// Set ciphers to use aes128-gcm if possible, as it is fast on many systems
-				jschSession.setConfig("cipher.s2c", session.getCiphers() + "," + DEF_CIPHERS);
-				jschSession.setConfig("cipher.c2s", session.getCiphers() + "," + DEF_CIPHERS);
-				jschSession.setConfig("CheckCiphers", session.getCiphers());
-			}
-		    
-		    if (session.isCompressed()) {
-		    	jschSession.setConfig("compression.s2c", "zlib@openssh.com,zlib,none");
-		        jschSession.setConfig("compression.c2s", "zlib@openssh.com,zlib,none");
-		        //jschSession.setConfig("compression_level", "9");
-		    }
-		    
-			jschSession.connect(TIMEOUT);
+        fun startTunnelIfSessionConnected(session: Session, tunnel: Tunnel) {
+            updateTunnelIfSessionConnected(session, TunnelUpdateState.START, tunnel, null)
+        }
 
-			startTunnels(session, jschSession);
-		} catch (JSchException | IOException e) {
-			Objects.requireNonNull(jschSession).disconnect();
-			throw new ConnectionException(e);
-		}
-		connections.put(session, jschSession);
-	}
+        fun stopTunnelIfSessionConnected(session: Session, tunnel: Tunnel) {
+            updateTunnelIfSessionConnected(session, TunnelUpdateState.STOP, tunnel, null)
+        }
 
-	private File getKnownHostsFile() {
-		String userHome = System.getProperty("user.home");
-		File f = new File(userHome);
-		f = new File(f, ".ssh");
-		f = new File(f, "known_hosts");
-		return f;
-	}
+        fun changeTunnelIfSessionConnected(session: Session, tunnel: Tunnel, prevTunnel: Tunnel): Int {
+            return updateTunnelIfSessionConnected(session, TunnelUpdateState.CHANGE, tunnel, prevTunnel)
+        }
 
-	private void startTunnels(Session session, com.jcraft.jsch.Session jschSession) {
-        for (Tunnel tunnel : session.getTunnels()) {
+        private fun updateTunnelIfSessionConnected(
+            session: Session,
+            state: TunnelUpdateState,
+            tunnel: Tunnel,
+            prevTunnel: Tunnel?
+        ): Int {
+            var status = 0
+            val jschSession = connections[session]
+            if (jschSession != null && jschSession.isConnected) {
+                try {
+                    when (state) {
+                        TunnelUpdateState.START -> startTunnel(jschSession, tunnel)
+                        TunnelUpdateState.STOP -> stopTunnel(jschSession, tunnel)
+                        else -> {
+                            stopTunnel(jschSession, prevTunnel)
+                            startTunnel(jschSession, tunnel)
+                        }
+                    }
+                } catch (e: JSchException) {
+                    status = -1
+                    log.error(e)
+                }
+            }
+            return status
+        }
+
+        @Throws(ConnectionException::class)
+        fun connect(session: Session, parent: Shell?) {
+            log.info("Connecting session: $session")
+            clearTunnelExceptions(session)
+            var jschSession = connections[session]
             try {
-                startTunnel(jschSession, tunnel);
-            } catch (Exception e) {
-                tunnel.setException(e);
-                log.error("Error starting tunnel: " + tunnel, e);
+                if (jschSession == null) {
+                    val jsch = JSch()
+                    val knownHosts = knownHostsFile
+                    jsch.setKnownHosts(knownHosts.absolutePath)
+
+                    if (session.identityPath != null && !session.identityPath!!.trim { it <= ' ' }.isEmpty()) {
+                        try {
+                            if (session.passPhrase != null && !session.passPhrase!!.trim { it <= ' ' }.isEmpty()) {
+                                jsch.addIdentity(session.identityPath, session.passPhrase)
+                            } else {
+                                jsch.addIdentity(session.identityPath)
+                            }
+                        } catch (e: JSchException) {
+                            // Jsch does not support newer format, you may convert the key to the pem format:
+                            // ssh-keygen -p -f key_file -m pem -P passphrase -N passphrase
+                            throw ConnectionException(e)
+                        }
+                    }
+                    jschSession = jsch.getSession(session.username, session.hostname, session.port)
+
+
+                    // Set debug logger if set
+                    if (session.debugLogPath != null && !session.debugLogPath!!.trim { it <= ' ' }.isEmpty()) {
+                        jschSession.setLogger(
+                            SshLogger(
+                                (session.debugLogPath
+                                        + File.separator + "sshtunnelng-" + session.sessionName + ".log")
+                            )
+                        )
+                    }
+                }
+                val userInfo: UserInfo =
+                    if (session.password != null && !session.password!!.trim { it <= ' ' }.isEmpty()) {
+                        DefaultUserInfo(parent, session.password)
+                    } else {
+                        DefaultUserInfo(parent)
+                    }
+
+                jschSession!!.userInfo = userInfo
+                jschSession.serverAliveInterval = KEEP_ALIVE_INTERVAL
+                jschSession.serverAliveCountMax = 2
+
+                if (session.ciphers != null && !session.ciphers!!.isEmpty()) {
+                    // Set ciphers to use aes128-gcm if possible, as it is fast on many systems
+                    jschSession.setConfig("cipher.s2c", session.ciphers + "," + DEF_CIPHERS)
+                    jschSession.setConfig("cipher.c2s", session.ciphers + "," + DEF_CIPHERS)
+                    jschSession.setConfig("CheckCiphers", session.ciphers)
+                }
+
+                if (session.isCompressed) {
+                    jschSession.setConfig("compression.s2c", "zlib@openssh.com,zlib,none")
+                    jschSession.setConfig("compression.c2s", "zlib@openssh.com,zlib,none")
+                    //jschSession.setConfig("compression_level", "9");
+                }
+
+                jschSession.connect(TIMEOUT)
+
+                startTunnels(session, jschSession)
+            } catch (e: JSchException) {
+                Objects.requireNonNull(jschSession)?.disconnect()
+                throw ConnectionException(e)
+            } catch (e: IOException) {
+                Objects.requireNonNull(jschSession)?.disconnect()
+                throw ConnectionException(e)
+            }
+            connections[session] = jschSession
+        }
+
+        private val knownHostsFile: File
+            get() {
+                val userHome = System.getProperty("user.home")
+                var f = File(userHome)
+                f = File(f, ".ssh")
+                f = File(f, "known_hosts")
+                return f
+            }
+
+        private fun startTunnels(session: Session, jschSession: com.jcraft.jsch.Session) {
+            for (tunnel in session.tunnels) {
+                try {
+                    startTunnel(jschSession, tunnel)
+                } catch (e: Exception) {
+                    tunnel.exception = e
+                    log.error("Error starting tunnel: $tunnel", e)
+                }
             }
         }
-	}
 
-	private void startTunnel(com.jcraft.jsch.Session jschSession, Tunnel tunnel) throws JSchException {
-		if (tunnel.getLocal()) {
-			//jschSession.setPortForwardingL(tunnel.getLocalAddress(), tunnel.getLocalPort(), tunnel.getRemoteAddress(), tunnel.getRemotePort());
-			jschSession.setPortForwardingL(tunnel.getLocalAddress(),
-					tunnel.getLocalPort(), tunnel.getRemoteAddress(),
-					tunnel.getRemotePort(), serverSocketFactory);
-		} else {
-			jschSession.setPortForwardingR(tunnel.getRemoteAddress(), tunnel.getRemotePort(), tunnel.getLocalAddress(), tunnel.getLocalPort());
-		}
-	}
-	
-	private int updateTunnelIfSessionConnected(Session session, TunnelUpdateState state, Tunnel tunnel, Tunnel prevTunnel) {
-		int status = 0;
-		com.jcraft.jsch.Session jschSession = connections.get(session);
-		if (jschSession != null && jschSession.isConnected()) {
-			try {
-				switch (state) {
-				case START:
-					startTunnel(jschSession, tunnel);
-					break;
-				case STOP:
-					stopTunnel(jschSession, tunnel);
-					break;
-				default:
-					stopTunnel(jschSession, prevTunnel);
-					startTunnel(jschSession, tunnel);
-					break;
-				}
-			} catch (JSchException e) {
-				status = -1;
-				log.error(e);
-			}
-		}
-		return status;
-	}
-	
-	public void startTunnelIfSessionConnected(Session session, Tunnel tunnel) {
-		updateTunnelIfSessionConnected(session, TunnelUpdateState.START, tunnel, null);
-	}
-	
-	public void stopTunnelIfSessionConnected(Session session, Tunnel tunnel) {
-		updateTunnelIfSessionConnected(session, TunnelUpdateState.STOP, tunnel, null);
-	}
-	
-	public int changeTunnelIfSessionConnected(Session session, Tunnel tunnel, Tunnel prevTunnel) {
-		return updateTunnelIfSessionConnected(session, TunnelUpdateState.CHANGE, tunnel, prevTunnel);
-	}
-
-	public void disconnect(Session session) {
-		log.info("Disconnecting session: " + session);
-		clearTunnelExceptions(session);
-		com.jcraft.jsch.Session jschSession = connections.get(session);
-		if (jschSession != null) {
-			stopTunnels(session, jschSession);
-			jschSession.disconnect();
-		}
-		connections.remove(session);
-	}
-
-	private void stopTunnels(Session session, com.jcraft.jsch.Session jschSession) {
-        for (Tunnel tunnel : session.getTunnels()) {
-            try {
-                stopTunnel(jschSession, tunnel);
-            } catch (Exception e) {
-                log.error("Error stopping tunnel: " + tunnel, e);
+        @Throws(JSchException::class)
+        private fun startTunnel(jschSession: com.jcraft.jsch.Session, tunnel: Tunnel) {
+            if (tunnel.local) {
+                //jschSession.setPortForwardingL(tunnel.getLocalAddress(), tunnel.getLocalPort(), tunnel.getRemoteAddress(), tunnel.getRemotePort());
+                jschSession.setPortForwardingL(
+                    tunnel.localAddress,
+                    tunnel.localPort, tunnel.remoteAddress,
+                    tunnel.remotePort, serverSocketFactory
+                )
+            } else {
+                jschSession.setPortForwardingR(
+                    tunnel.remoteAddress,
+                    tunnel.remotePort,
+                    tunnel.localAddress,
+                    tunnel.localPort
+                )
             }
         }
-	}
 
-	private void stopTunnel(com.jcraft.jsch.Session jschSession, Tunnel tunnel) throws JSchException {
-		if (tunnel.getLocal()) {
-			jschSession.delPortForwardingL(tunnel.getLocalAddress(), tunnel.getLocalPort());
-			serverSocketFactory.closeSocket(tunnel.getLocalAddress(), tunnel.getLocalPort());
-		} else {
-			jschSession.delPortForwardingR(tunnel.getRemotePort());
-		}
-	}
 
-	private void clearTunnelExceptions(Session session) {
-        for (Tunnel tunnel : session.getTunnels()) {
-            tunnel.setException(null);
+        fun disconnect(session: Session) {
+            log.info("Disconnecting session: $session")
+            clearTunnelExceptions(session)
+            val jschSession = connections[session]
+            if (jschSession != null) {
+                stopTunnels(session, jschSession)
+                jschSession.disconnect()
+            }
+            connections.remove(session)
         }
-	}
 
-	public boolean isConnected(Session session) {
-		com.jcraft.jsch.Session jschSession = connections.get(session);
-		return jschSession != null && jschSession.isConnected();
-	}
-	
-	public Exception getSessionException(Session session) {
-		// Currently use keepAliveMsg
-		Exception err = null;
-		com.jcraft.jsch.Session jschSession = connections.get(session);
-		if (jschSession != null ) {
-			try {
-				ChannelExec testChannel = (ChannelExec) jschSession.openChannel("exec");
-				testChannel.setCommand("true");
-				testChannel.connect();
-				testChannel.disconnect();
-			} catch (Exception e) {
-				err = e;
-			}
-		}
-		return err;
-	}
-	
+        private fun stopTunnels(session: Session, jschSession: com.jcraft.jsch.Session) {
+            for (tunnel in session.tunnels) {
+                try {
+                    stopTunnel(jschSession, tunnel)
+                } catch (e: Exception) {
+                    log.error("Error stopping tunnel: $tunnel", e)
+                }
+            }
+        }
+
+        @Throws(JSchException::class)
+        private fun stopTunnel(jschSession: com.jcraft.jsch.Session, tunnel: Tunnel?) {
+            if (tunnel != null) {
+                if (tunnel.local) {
+                    jschSession.delPortForwardingL(tunnel.localAddress, tunnel.localPort)
+                    serverSocketFactory.closeSocket(tunnel.localAddress, tunnel.localPort)
+                } else {
+                    jschSession.delPortForwardingR(tunnel.remotePort)
+                }
+            }
+        }
+
+        private fun clearTunnelExceptions(session: Session) {
+            for (tunnel in session.tunnels) {
+                tunnel.exception = null
+            }
+        }
+
+        fun isConnected(session: Session): Boolean {
+            val jschSession = connections[session]
+            return jschSession != null && jschSession.isConnected
+        }
+
+    }
 }
 
-class SshLogger implements com.jcraft.jsch.Logger {
-    static java.util.Hashtable<Integer, String> name = new java.util.Hashtable<Integer, String>();
-    
-    private final Logger logger = Logger.getLogger(SshLogger.class.getSimpleName());
-    
-    public SshLogger(String filePath) throws IOException {
-		FileHandler fh = new FileHandler(filePath);
-		SimpleFormatter formatter = new SimpleFormatter();
-		fh.setFormatter(formatter);
-		logger.addHandler(fh);
-	}
-    
-    
-    static{
-      name.put(DEBUG, "DEBUG: ");
-      name.put(INFO, "INFO: ");
-      name.put(WARN, "WARN: ");
-      name.put(ERROR, "ERROR: ");
-      name.put(FATAL, "FATAL: ");
+internal class SshLogger(filePath: String) : Logger {
+    private val logger: java.util.logging.Logger = java.util.logging.Logger.getLogger(SshLogger::class.java.simpleName)
+
+    init {
+        val fh = FileHandler(filePath)
+        val formatter = SimpleFormatter()
+        fh.formatter = formatter
+        logger.addHandler(fh)
     }
-    
-    public boolean isEnabled(int level){
-      return true;
+
+
+    override fun isEnabled(level: Int): Boolean {
+        return true
     }
-    
-    public void log(int level, String message){
-    	switch (level) {
-		case INFO:
-			logger.info(message);
-			break;
-		case WARN:
-			logger.warning(message);
-			break;
-		case ERROR, FATAL:
-			logger.severe(message);
-			break;
-            default:
-			break;
-		}
+
+    override fun log(level: Int, message: String) {
+        when (level) {
+            Logger.INFO -> logger.info(message)
+            Logger.WARN -> logger.warning(message)
+            Logger.ERROR, Logger.FATAL -> logger.severe(message)
+            else -> {}
+        }
     }
- }
+
+    companion object {
+        var name: Hashtable<Int, String> = Hashtable()
+
+        init {
+            name[Logger.DEBUG] = "DEBUG: "
+            name[Logger.INFO] = "INFO: "
+            name[Logger.WARN] = "WARN: "
+            name[Logger.ERROR] = "ERROR: "
+            name[Logger.FATAL] = "FATAL: "
+        }
+    }
+}
 
 

@@ -232,8 +232,8 @@ public class SessionsComposite extends Composite {
 		for (Iterator<Session> i = sessions.iterator(); i.hasNext();) {
 			Session session = i.next();
 			TableItem tableItem = new TableItem(sessionTable, SWT.NULL);
-			tableItem.setText(new String[] { "", session.getSessionName(), session.getHostname(), Integer.toString(session.getPort()), session.getUsername() });
-			Image image = ConnectionManager.getInstance().isConnected(session) ? connectedImage : disconnectedImage;
+			tableItem.setText(new String[] { "", session.sessionName, session.hostname, Integer.toString(session.port), session.username});
+			Image image = ConnectionManager.Companion.isConnected(session) ? connectedImage : disconnectedImage;
 			tableItem.setImage(0, image);
 		}
 	}

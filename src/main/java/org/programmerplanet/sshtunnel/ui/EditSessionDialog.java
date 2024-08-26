@@ -220,30 +220,30 @@ public class EditSessionDialog extends CustomDialog {
 			}
 		});
 		
-		setSessionName(session.getSessionName());
-		setHostname(session.getHostname());
-		setPort(session.getPort());
-		setUsername(session.getUsername());
-		setPassword(session.getPassword());
-		setIdentityPath(session.getIdentityPath());
-		setPassPhrase(session.getPassPhrase());
+		setSessionName(session.sessionName);
+		setHostname(session.hostname);
+		setPort(session.port);
+		setUsername(session.username);
+		setPassword(session.password);
+		setIdentityPath(session.identityPath);
+		setPassPhrase(session.passPhrase);
 		setCompression(session.isCompressed());
-		setCiphers(session.getCiphers());
-		setDebugLogDir(session.getDebugLogPath());
+		setCiphers(session.ciphers);
+		setDebugLogDir(session.debugLogPath);
 	}
 
 	protected void okPressed() {
-		session.setSessionName(getSessionName());
-		session.setHostname(getHostname());
-		session.setPort(getPort());
-		session.setUsername(getUsername());
-		session.setPassword(getPassword());
-		session.setIdentityPath(getIdentityPath());
-		session.setPassPhrase(getPassPhrase());
+		session.sessionName = getSessionName();
+		session.hostname = getHostname();
+		session.port = getPort();
+		session.username = getUsername();
+		session.password = getPassword();
+		session.identityPath = getIdentityPath();
+		session.passPhrase = getPassPhrase();
 		session.setCompressed(getCompression());
-		session.setCiphers(getCiphers());
+		session.ciphers = getCiphers();
 		session.setCompressed(getCompression());
-		session.setDebugLogPath(getDebugLogDir());
+		session.debugLogPath = getDebugLogDir();
 		super.okPressed();
 	}
 

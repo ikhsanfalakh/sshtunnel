@@ -27,15 +27,15 @@ import org.programmerplanet.sshtunnel.model.Tunnel;
 public class TunnelChangeAdapter implements TunnelChangeListener {
 
 	public void tunnelAdded(Session session, Tunnel tunnel) {
-		ConnectionManager.getInstance().startTunnelIfSessionConnected(session, tunnel);
+		ConnectionManager.Companion.startTunnelIfSessionConnected(session, tunnel);
 	}
 
 	public int tunnelChanged(Session session, Tunnel tunnel, Tunnel prevTunnel) {
-		return ConnectionManager.getInstance().changeTunnelIfSessionConnected(session, tunnel, prevTunnel);
+		return ConnectionManager.Companion.changeTunnelIfSessionConnected(session, tunnel, prevTunnel);
 	}
 
 	public void tunnelRemoved(Session session, Tunnel tunnel) {
-		ConnectionManager.getInstance().stopTunnelIfSessionConnected(session, tunnel);
+		ConnectionManager.Companion.stopTunnelIfSessionConnected(session, tunnel);
 	}
 
 	public void tunnelSelectionChanged(Tunnel tunnel) {

@@ -13,127 +13,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.model;
-
-import java.util.ArrayList;
-import java.util.List;
+package org.programmerplanet.sshtunnel.model
 
 /**
  * Represents a session to an ssh host.
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
- * @author <a href="agungm@outlook.com">Mulya Agung</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
+ * @author [Mulya Agung](agungm@outlook.com)
  */
-public class Session implements Comparable<Session> {
+class Session : Comparable<Session> {
+    @JvmField
+	var sessionName: String? = null
+    @JvmField
+	var hostname: String? = null
+    @JvmField
+	var port: Int = DEFAULT_PORT
+    @JvmField
+	var username: String? = null
+    @JvmField
+	var password: String? = null
+    @JvmField
+	val tunnels: MutableList<Tunnel> = ArrayList()
+    @JvmField
+	var identityPath: String? = null
+    @JvmField
+	var passPhrase: String? = null
+    var isCompressed: Boolean = false
+    @JvmField
+	var ciphers: String? = null
+    @JvmField
+	var debugLogPath: String? = null
 
-	private static final int DEFAULT_PORT = 22;
+    override fun toString(): String {
+        return "Session (" + sessionName + ": " + username + "@" + hostname + (if (port != DEFAULT_PORT) ":$port" else "") + ")"
+    }
 
-	private String sessionName;
-	private String hostname;
-	private int port = DEFAULT_PORT;
-	private String username;
-	private String password;
-	private List<Tunnel> tunnels = new ArrayList<Tunnel>();
-	private String identityPath;
-	private String passPhrase;
-	private boolean compressed;
-	private String ciphers;
-	private String debugLogPath;
+    override fun compareTo(other: Session): Int {
+        return sessionName!!.compareTo(other.sessionName!!)
+    }
 
-	public String getSessionName() {
-		return sessionName;
-	}
-
-	public void setSessionName(String name) {
-		this.sessionName = name;
-	}
-
-	public String getHostname() {
-		return hostname;
-	}
-
-	public void setHostname(String hostname) {
-		this.hostname = hostname;
-	}
-
-	public int getPort() {
-		return port;
-	}
-
-	public void setPort(int port) {
-		this.port = port;
-	}
-
-	public String getUsername() {
-		return username;
-	}
-
-	public void setUsername(String username) {
-		this.username = username;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public List<Tunnel> getTunnels() {
-		return tunnels;
-	}
-
-	public String toString() {
-		return "Session (" + sessionName + ": " + username + "@" + hostname + (port != DEFAULT_PORT ? ":" + port : "") + ")";
-	}
-
-	public int compareTo(Session other) {
-		return sessionName.compareTo(other.sessionName);
-	}
-
-	public String getIdentityPath() {
-		return identityPath;
-	}
-
-	public void setIdentityPath(String identityPath) {
-		this.identityPath = identityPath;
-	}
-
-	public String getPassPhrase() {
-		return passPhrase;
-	}
-
-	public void setPassPhrase(String passPhrase) {
-		this.passPhrase = passPhrase;
-	}
-	
-	public void setCompressed(boolean isCompressed) {
-		this.compressed = isCompressed;
-	}
-	
-	public boolean isCompressed() {
-		return this.compressed;
-	}
-
-	public String getCiphers() {
-		return ciphers;
-	}
-
-	public void setCiphers(String ciphers) {
-		this.ciphers = ciphers;
-	}
-
-	public String getDebugLogPath() {
-		return debugLogPath;
-	}
-
-	public void setDebugLogPath(String path) {
-		this.debugLogPath = path;
-	}
-
-	public void setTunnels(List<Tunnel> tunnels) {
-		this.tunnels = tunnels;
-	}
-	
+    companion object {
+        private const val DEFAULT_PORT = 22
+    }
 }

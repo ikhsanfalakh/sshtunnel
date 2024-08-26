@@ -13,114 +13,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.model;
+package org.programmerplanet.sshtunnel.model
 
-import java.util.Objects;
+import java.util.*
 
 /**
  * Represents a tunnel (port forward) over an ssh connection.
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
- * @author <a href="agungm@outlook.com">Mulya Agung</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
+ * @author [Mulya Agung](agungm@outlook.com)
  */
-public class Tunnel implements Comparable<Tunnel> {
+class Tunnel : Comparable<Tunnel> {
+    @JvmField
+	var localAddress: String? = null
+    @JvmField
+	var localPort: Int = 0
+    @JvmField
+	var remoteAddress: String? = null
+    @JvmField
+	var remotePort: Int = 0
+    @JvmField
+	var local: Boolean = true
 
-	private String localAddress;
-	private int localPort;
-	private String remoteAddress;
-	private int remotePort;
-	private boolean local = true;
+    @JvmField
+	@Transient
+    var exception: Exception? = null
 
-	private transient Exception exception;
+    override fun toString(): String {
+        val localName = "$localAddress:$localPort"
+        val direction = if (local) "->" else "<-"
+        val remoteName = "$remoteAddress:$remotePort"
+        return "Tunnel ($localName$direction$remoteName)"
+    }
 
-	public String getLocalAddress() {
-		return localAddress;
-	}
+    override fun compareTo(other: Tunnel): Int {
+        var i = localAddress!!.compareTo(other.localAddress!!)
+        if (i == 0) {
+            i = localPort.compareTo(other.localPort)
+        }
+        return i
+    }
 
-	public void setLocalAddress(String localAddress) {
-		this.localAddress = localAddress;
-	}
+    fun copy(): Tunnel {
+        val copyTunnel = Tunnel()
+        copyTunnel.local = local
+        copyTunnel.localAddress = localAddress
+        copyTunnel.localPort = localPort
+        copyTunnel.remoteAddress = remoteAddress
+        copyTunnel.remotePort = remotePort
+        return copyTunnel
+    }
 
-	public int getLocalPort() {
-		return localPort;
-	}
+    override fun hashCode(): Int {
+        return Objects.hash(localAddress, localPort)
+    }
 
-	public void setLocalPort(int localPort) {
-		this.localPort = localPort;
-	}
-
-	public String getRemoteAddress() {
-		return remoteAddress;
-	}
-
-	public void setRemoteAddress(String remoteAddress) {
-		this.remoteAddress = remoteAddress;
-	}
-
-	public int getRemotePort() {
-		return remotePort;
-	}
-
-	public void setRemotePort(int remotePort) {
-		this.remotePort = remotePort;
-	}
-
-	public void setLocal(boolean local) {
-		this.local = local;
-	}
-
-	public boolean getLocal() {
-		return local;
-	}
-
-	public void setException(Exception exception) {
-		this.exception = exception;
-	}
-
-	public Exception getException() {
-		return exception;
-	}
-
-	public String toString() {
-		String localName = getLocalAddress() + ":" + getLocalPort();
-		String direction = getLocal() ? "->" : "<-";
-		String remoteName = getRemoteAddress() + ":" + getRemotePort();
-		return "Tunnel (" + localName + direction + remoteName + ")";
-	}
-
-	public int compareTo(Tunnel other) {
-		int i = localAddress.compareTo(other.localAddress);
-		if (i == 0) {
-			i = Integer.valueOf(localPort).compareTo(Integer.valueOf(other.localPort));
-		}
-		return i;
-	}
-	
-	public Tunnel copy() {
-		Tunnel copyTunnel = new Tunnel();
-		copyTunnel.setLocal(this.local);
-		copyTunnel.setLocalAddress(this.localAddress);
-		copyTunnel.setLocalPort(this.localPort);
-		copyTunnel.setRemoteAddress(this.remoteAddress);
-		copyTunnel.setRemotePort(this.remotePort);
-		return copyTunnel;
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(localAddress, localPort);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Tunnel other = (Tunnel) obj;
-		return Objects.equals(localAddress, other.localAddress) && localPort == other.localPort;
-	}
-
+    override fun equals(obj: Any?): Boolean {
+        if (this === obj) return true
+        if (obj == null) return false
+        if (javaClass != obj.javaClass) return false
+        val other: Tunnel = obj as Tunnel
+        return localAddress == other.localAddress && localPort == other.localPort
+    }
 }
