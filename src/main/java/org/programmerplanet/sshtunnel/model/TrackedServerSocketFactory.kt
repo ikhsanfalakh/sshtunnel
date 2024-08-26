@@ -1,107 +1,99 @@
-package org.programmerplanet.sshtunnel.model;
+package org.programmerplanet.sshtunnel.model
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import com.jcraft.jsch.ServerSocketFactory
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
+import java.io.IOException
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.Socket
+import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 
-import com.jcraft.jsch.ServerSocketFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+class TrackedServerSocketFactory : ServerSocketFactory {
+    private val socketMap: MutableMap<String, ServerSocket> =
+        HashMap()
 
-public class TrackedServerSocketFactory implements ServerSocketFactory {
-	private static final Log log = LogFactory.getLog(TrackedServerSocketFactory.class);
+    @Throws(IOException::class)
+    override fun createServerSocket(port: Int, backlog: Int, bindAddr: InetAddress): ServerSocket {
+        val serverSocket: ServerSocket = CustomServerSocket(port, backlog, bindAddr)
+        val key = "$bindAddr:$port"
+        socketMap[key] = serverSocket
+        return serverSocket
+    }
 
-	private final Map<String, ServerSocket> socketMap;
-	
-	public TrackedServerSocketFactory() {
-		this.socketMap = new HashMap<>();
-	}
+    fun closeSocket(addr: String?, port: Int) {
+        try {
+            val bindAddr = InetAddress.getByName(normalize(addr))
 
-	@Override
-	public ServerSocket createServerSocket(int port, int backlog, InetAddress bindAddr) throws IOException {
-		ServerSocket serverSocket = new CustomServerSocket(port, backlog, bindAddr);
-		String key = bindAddr.toString() + ":" + port;
-		socketMap.put(key, serverSocket);
-		return serverSocket;
-	}
+            val key = "$bindAddr:$port"
+            val socket = socketMap[key]
+            if (socket != null) {
+                val customSocket = socket as CustomServerSocket
+                customSocket.closeTunnelSocket(bindAddr.toString(), port)
+                try {
+                    customSocket.close()
+                } catch (e: IOException) {
+                    log.error(e)
+                } finally {
+                    socketMap.remove(key)
+                }
+            }
+        } catch (e: UnknownHostException) {
+            log.error(e)
+        }
+    }
 
-	public void closeSocket(String addr, int port) {
-		try {
-			InetAddress bindAddr = InetAddress.getByName(normalize(addr));
-			
-			String key = bindAddr.toString() + ":" + port;
-			ServerSocket socket = socketMap.get(key);
-			if (socket != null) {
-				CustomServerSocket customSocket = (CustomServerSocket) socket;
-				customSocket.closeTunnelSocket(bindAddr.toString(), port);
-				try {
-					customSocket.close();
-				} catch (IOException e) {
-					log.error(e);
-				} finally {
-					socketMap.remove(key);
-				}
-			}
-		} catch (UnknownHostException e) {
-			log.error(e);
-		}
-	}
-	
-	public static String normalize(String address){
-	    if(address!=null){
-	      if(address.isEmpty() || address.equals("*"))
-	        address="0.0.0.0";
-	      else if(address.equals("localhost"))
-	        address="127.0.0.1";
-	    }
-	    return address;
-	}
+    companion object {
+        private val log: Log = LogFactory.getLog(
+            TrackedServerSocketFactory::class.java
+        )
 
+        fun normalize(address: String?): String? {
+            var initAddress: String? = address
+            if (initAddress != null) {
+                if (initAddress.isEmpty() || address == "*") initAddress = "0.0.0.0"
+                else if (address == "localhost") initAddress = "127.0.0.1"
+            }
+            return initAddress
+        }
+    }
 }
 
-class CustomServerSocket extends ServerSocket {
-	private static final Log log = LogFactory.getLog(CustomServerSocket.class);
+internal class CustomServerSocket(port: Int, backlog: Int, bindAddr: InetAddress?) :
+    ServerSocket(port, backlog, bindAddr) {
+    private val tunnelSockets: MutableMap<String, MutableList<Socket>> =
+        ConcurrentHashMap()
 
-	private final Map<String, List<Socket>> tunnelSockets;
-	
-	public CustomServerSocket(int port, int backlog, InetAddress bindAddr) throws IOException {
-		super(port, backlog, bindAddr);
-		this.tunnelSockets = new ConcurrentHashMap<>();
-	}
+    @Throws(IOException::class)
+    override fun accept(): Socket {
+        val socket = super.accept()
+        val key = socket.inetAddress.toString() + ":" + socket.localPort
 
-	@Override
-	public Socket accept() throws IOException {
-		Socket socket = super.accept();
-		String key = socket.getInetAddress().toString() + ":" + socket.getLocalPort();
-		
-		if (!tunnelSockets.containsKey(key))
-			tunnelSockets.put(key, new ArrayList<>());
-		tunnelSockets.get(key).add(socket);
-		
-		return socket;
-	}
-	
-	public void closeTunnelSocket(String addr, int port) {
-		String key = addr + ":" + Integer.toString(port);
-		List<Socket> sockets = tunnelSockets.get(key);
-		if ((sockets != null) && (!sockets.isEmpty())) {
-			for (Socket socket: sockets) {
-				try {
-					socket.close();
-				} catch (IOException e) {
-					log.error(e);
-				}
-			}
-			tunnelSockets.remove(key);
-		}
-	}
+        if (!tunnelSockets.containsKey(key)) tunnelSockets[key] = ArrayList()
+        tunnelSockets[key]!!.add(socket)
 
-	
+        return socket
+    }
+
+    fun closeTunnelSocket(addr: String, port: Int) {
+        val key = "$addr:$port"
+        val sockets: List<Socket>? = tunnelSockets[key]
+        if (!sockets.isNullOrEmpty()) {
+            for (socket in sockets) {
+                try {
+                    socket.close()
+                } catch (e: IOException) {
+                    log.error(e)
+                }
+            }
+            tunnelSockets.remove(key)
+        }
+    }
+
+    companion object {
+        private val log: Log = LogFactory.getLog(
+            CustomServerSocket::class.java
+        )
+    }
 }

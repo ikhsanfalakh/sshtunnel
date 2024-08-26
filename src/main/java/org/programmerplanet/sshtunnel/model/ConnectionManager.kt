@@ -102,16 +102,16 @@ class ConnectionManager {
         fun connect(session: Session, parent: Shell?) {
             log.info("Connecting session: $session")
             clearTunnelExceptions(session)
-            var jschSession = connections[session]
+            var jschSession: com.jcraft.jsch.Session? = connections[session]
             try {
                 if (jschSession == null) {
                     val jsch = JSch()
                     val knownHosts = knownHostsFile
                     jsch.setKnownHosts(knownHosts.absolutePath)
 
-                    if (session.identityPath != null && !session.identityPath!!.trim { it <= ' ' }.isEmpty()) {
+                    if (session.identityPath != null && session.identityPath!!.trim { it <= ' ' }.isNotEmpty()) {
                         try {
-                            if (session.passPhrase != null && !session.passPhrase!!.trim { it <= ' ' }.isEmpty()) {
+                            if (session.passPhrase != null && session.passPhrase!!.trim { it <= ' ' }.isNotEmpty()) {
                                 jsch.addIdentity(session.identityPath, session.passPhrase)
                             } else {
                                 jsch.addIdentity(session.identityPath)
@@ -126,17 +126,15 @@ class ConnectionManager {
 
 
                     // Set debug logger if set
-                    if (session.debugLogPath != null && !session.debugLogPath!!.trim { it <= ' ' }.isEmpty()) {
-                        jschSession.setLogger(
-                            SshLogger(
-                                (session.debugLogPath
-                                        + File.separator + "sshtunnelng-" + session.sessionName + ".log")
-                            )
+                    if (session.debugLogPath != null && session.debugLogPath!!.trim { it <= ' ' }.isNotEmpty()) {
+                        jschSession.logger = SshLogger(
+                            (session.debugLogPath
+                                    + File.separator + "sshtunnelng-" + session.sessionName + ".log")
                         )
                     }
                 }
                 val userInfo: UserInfo =
-                    if (session.password != null && !session.password!!.trim { it <= ' ' }.isEmpty()) {
+                    if (session.password != null && session.password!!.trim { it <= ' ' }.isNotEmpty()) {
                         DefaultUserInfo(parent, session.password)
                     } else {
                         DefaultUserInfo(parent)
@@ -146,7 +144,7 @@ class ConnectionManager {
                 jschSession.serverAliveInterval = KEEP_ALIVE_INTERVAL
                 jschSession.serverAliveCountMax = 2
 
-                if (session.ciphers != null && !session.ciphers!!.isEmpty()) {
+                if (session.ciphers != null && session.ciphers!!.isNotEmpty()) {
                     // Set ciphers to use aes128-gcm if possible, as it is fast on many systems
                     jschSession.setConfig("cipher.s2c", session.ciphers + "," + DEF_CIPHERS)
                     jschSession.setConfig("cipher.c2s", session.ciphers + "," + DEF_CIPHERS)
@@ -156,7 +154,6 @@ class ConnectionManager {
                 if (session.isCompressed) {
                     jschSession.setConfig("compression.s2c", "zlib@openssh.com,zlib,none")
                     jschSession.setConfig("compression.c2s", "zlib@openssh.com,zlib,none")
-                    //jschSession.setConfig("compression_level", "9");
                 }
 
                 jschSession.connect(TIMEOUT)
@@ -195,7 +192,6 @@ class ConnectionManager {
         @Throws(JSchException::class)
         private fun startTunnel(jschSession: com.jcraft.jsch.Session, tunnel: Tunnel) {
             if (tunnel.local) {
-                //jschSession.setPortForwardingL(tunnel.getLocalAddress(), tunnel.getLocalPort(), tunnel.getRemoteAddress(), tunnel.getRemotePort());
                 jschSession.setPortForwardingL(
                     tunnel.localAddress,
                     tunnel.localPort, tunnel.remoteAddress,
@@ -268,7 +264,6 @@ internal class SshLogger(filePath: String) : Logger {
         fh.formatter = formatter
         logger.addHandler(fh)
     }
-
 
     override fun isEnabled(level: Int): Boolean {
         return true

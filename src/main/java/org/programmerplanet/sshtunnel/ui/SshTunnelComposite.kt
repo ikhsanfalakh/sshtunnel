@@ -14,547 +14,500 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Objects;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.SashForm;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.ShellAdapter;
-import org.eclipse.swt.events.ShellEvent;
-import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.Menu;
-import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.ProgressBar;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.ToolTip;
-import org.eclipse.swt.widgets.Tray;
-import org.eclipse.swt.widgets.TrayItem;
-import org.programmerplanet.sshtunnel.model.Configuration;
-import org.programmerplanet.sshtunnel.model.ConnectionException;
-import org.programmerplanet.sshtunnel.model.ConnectionManager;
-import org.programmerplanet.sshtunnel.model.Session;
+import org.eclipse.swt.SWT
+import org.eclipse.swt.custom.SashForm
+import org.eclipse.swt.events.*
+import org.eclipse.swt.graphics.Image
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.layout.GridLayout
+import org.eclipse.swt.widgets.*
+import org.programmerplanet.sshtunnel.model.Configuration
+import org.programmerplanet.sshtunnel.model.ConnectionException
+import org.programmerplanet.sshtunnel.model.ConnectionManager
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.connect
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
+import org.programmerplanet.sshtunnel.model.Session
+import java.io.IOException
+import java.io.InputStream
+import kotlin.system.exitProcess
 
 /**
- * @author <a href="agungm@outlook.com">Mulya Agung</a>
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ * @author [Mulya Agung](agungm@outlook.com)
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class SshTunnelComposite extends Composite {
+class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) {
+    private var applicationImage: Image
+    private var connectImage: Image
+    private var disconnectImage: Image
+    private var connectAllImage: Image
+    private var disconnectAllImage: Image
+    private var connectedImage: Image
+    private var disconnectedImage: Image
 
-    public static final String APPLICATION_TITLE = "SSH Tunnel NG";
-    private static final String APPLICATION_VERSION = "v0.7";
-    private static final String APPLICATION_SITE = "github.com/agung-m/sshtunnel-ng";
-    private static final String APPLICATION_IMAGE_PATH = "/images/sshtunnel-ng.png";
-    private static final String CONNECT_IMAGE_PATH = "/images/connect.png";
-    private static final String DISCONNECT_IMAGE_PATH = "/images/disconnect.png";
-    private static final String CONNECT_ALL_IMAGE_PATH = "/images/connect_all.png";
-    private static final String DISCONNECT_ALL_IMAGE_PATH = "/images/disconnect_all.png";
-    private static final String CONNECTED_IMAGE_PATH = "/images/bullet_green.png";
-    private static final String DISCONNECTED_IMAGE_PATH = "/images/bullet_red.png";
+    private lateinit var connectButton: Button
+    private lateinit var disconnectButton: Button
 
-    private Image applicationImage;
-    private Image connectImage;
-    private Image disconnectImage;
-    private Image connectAllImage;
-    private Image disconnectAllImage;
-    private Image connectedImage;
-    private Image disconnectedImage;
+    private lateinit var connectAllButton: Button
+    private lateinit var disconnectAllButton: Button
+    private lateinit var trayItem: TrayItem
 
-    private Button connectButton;
-    private Button disconnectButton;
+    private lateinit var progressBar: ProgressBar
 
-    private Button connectAllButton;
-    private Button disconnectAllButton;
-    private TrayItem trayItem;
+    private var configuration: Configuration = Configuration()
+    private var sashForm: SashForm
+    private var sessionsComposite: SessionsComposite
+    private var tunnelsComposite: TunnelsComposite? = null
 
-    private ProgressBar progressBar;
+    private lateinit var currentSession: Session
 
-    private Configuration configuration;
-    private SashForm sashForm;
-    private SessionsComposite sessionsComposite;
-    private TunnelsComposite tunnelsComposite;
-
-    private Session currentSession = null;
-
-    private final Shell shell;
-
-    public SshTunnelComposite(Shell shell) {
-        super(shell, SWT.NONE);
-        this.shell = shell;
-        load();
-        initialize();
-    }
-
-    private void load() {
-        configuration = new Configuration();
+    init {
         try {
-            configuration.read();
-        } catch (IOException e) {
-            MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
-            messageBox.setText("Error");
-            messageBox.setMessage("Unable to load configuration.");
-            messageBox.open();
+            configuration.read()
+        } catch (e: IOException) {
+            val messageBox = MessageBox(shell, SWT.ICON_ERROR or SWT.OK)
+            messageBox.text = "Error"
+            messageBox.message = "Unable to load configuration."
+            messageBox.open()
         }
-    }
-
-    private void save() {
-        configuration.setLeft(shell.getBounds().x);
-        configuration.setTop(shell.getBounds().y);
-        configuration.setWidth(shell.getBounds().width);
-        configuration.setHeight(shell.getBounds().height);
-        configuration.setWeights(sashForm.getWeights());
-        try {
-            configuration.write();
-        } catch (IOException e) {
-            MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
-            messageBox.setText("Error");
-            messageBox.setMessage("Unable to save configuration.");
-            messageBox.open();
-        }
-    }
-
-    private void initialize() {
-        createImages();
-
-        shell.setText(APPLICATION_TITLE);
-        shell.setLayout(new FillLayout());
-        shell.setImage(applicationImage);
-        shell.addShellListener(new ShellAdapter() {
-            public void shellClosed(ShellEvent e) {
-                exit();
+        applicationImage = loadImage(APPLICATION_IMAGE_PATH)
+        connectImage = loadImage(CONNECT_IMAGE_PATH)
+        disconnectImage = loadImage(DISCONNECT_IMAGE_PATH)
+        connectAllImage = loadImage(CONNECT_ALL_IMAGE_PATH)
+        disconnectAllImage = loadImage(DISCONNECT_ALL_IMAGE_PATH)
+        connectedImage = loadImage(CONNECTED_IMAGE_PATH)
+        disconnectedImage = loadImage(DISCONNECTED_IMAGE_PATH)
+        shell.text = APPLICATION_TITLE
+        shell.layout = FillLayout()
+        shell.image = applicationImage
+        shell.addShellListener(object : ShellAdapter() {
+            override fun shellClosed(e: ShellEvent) {
+                exit()
             }
 
-            public void shellIconified(ShellEvent e) {
-                shell.setMinimized(true);
+            override fun shellIconified(e: ShellEvent) {
+                shell.minimized = true
             }
-        });
+        })
+        layout = GridLayout()
+        sashForm = SashForm(this, SWT.VERTICAL)
+        createSashForm()        
+        val tunnelChangeListener: TunnelChangeListener = TunnelChangeAdapter()
+        val sessionChangeListener: SessionChangeListener = object : SessionChangeAdapter() {
+            override fun sessionAdded(session: Session) {
+                updateConnectButtons()
+            }
 
-        this.setLayout(new GridLayout());
+            override fun sessionRemoved(session: Session) {
+                updateConnectButtons()
+            }
 
-        createSashForm();
-        createSessionsComposite();
-        createTunnelsComposite();
-        createButtonBarComposite();
-        createStatusBarComposite();
-        createTrayIcon();
+            override fun sessionSelectionChanged(session: Session) {
+                currentSession = session
+                tunnelsComposite?.setSession(session)
+                updateConnectButtons()
+            }
+        }
+        sessionsComposite = SessionsComposite(sashForm, SWT.NONE, configuration.getSessions(), sessionChangeListener)
+        tunnelsComposite = TunnelsComposite(sashForm, shell, SWT.NONE, tunnelChangeListener)
 
-        shell.setBounds(configuration.getLeft(), configuration.getTop(), configuration.getWidth(), configuration.getHeight());
-        sashForm.setWeights(configuration.getWeights());
-
+        createButtonBarComposite()
+        createStatusBarComposite()
+        createTrayIcon()
+        shell.setBounds(configuration.left, configuration.top, configuration.width, configuration.height)
+        sashForm.weights = configuration.weights
         // Run connection monitor
-        SessionConnectionMonitor.getInstance().setSshTunnelComposite(this);
-        SessionConnectionMonitor.getInstance().startMonitor();
+        SessionConnectionMonitor.getInstance().setSshTunnelComposite(this)
+        SessionConnectionMonitor.getInstance().startMonitor()
     }
 
-    private void createImages() {
-        applicationImage = loadImage(APPLICATION_IMAGE_PATH);
-        connectImage = loadImage(CONNECT_IMAGE_PATH);
-        disconnectImage = loadImage(DISCONNECT_IMAGE_PATH);
-        connectAllImage = loadImage(CONNECT_ALL_IMAGE_PATH);
-        disconnectAllImage = loadImage(DISCONNECT_ALL_IMAGE_PATH);
-        connectedImage = loadImage(CONNECTED_IMAGE_PATH);
-        disconnectedImage = loadImage(DISCONNECTED_IMAGE_PATH);
-    }
-
-    private Image loadImage(String path) {
-        InputStream stream = SshTunnelComposite.class.getResourceAsStream(path);
+    private fun save() {
+        configuration.left = shell.bounds.x
+        configuration.top = shell.bounds.y
+        configuration.width = shell.bounds.width
+        configuration.height = shell.bounds.height
+        configuration.weights = sashForm.weights
         try {
-            return new Image(this.getDisplay(), stream);
+            configuration.write()
+        } catch (e: IOException) {
+            val messageBox = MessageBox(shell, SWT.ICON_ERROR or SWT.OK)
+            messageBox.text = "Error"
+            messageBox.message = "Unable to save configuration."
+            messageBox.open()
+        }
+    }
+
+    private fun loadImage(path: String): Image {
+        val stream: InputStream? = SshTunnelComposite::class.java.getResourceAsStream(path)
+        try {
+            return Image(this.display, stream)
         } finally {
             try {
-                Objects.requireNonNull(stream).close();
-            } catch (IOException e) {
+                stream?.close()
+            } catch (e: IOException) {
                 // ignore
             }
         }
     }
 
-    private void createSashForm() {
-        sashForm = new SashForm(this, SWT.VERTICAL);
-
-        GridData gridData = new GridData();
-        gridData.grabExcessHorizontalSpace = true;
-        gridData.horizontalAlignment = GridData.FILL;
-        gridData.grabExcessVerticalSpace = true;
-        gridData.verticalAlignment = GridData.FILL;
-        sashForm.setLayoutData(gridData);
+    private fun createSashForm() {
+        val gridData = GridData()
+        gridData.grabExcessHorizontalSpace = true
+        gridData.horizontalAlignment = GridData.FILL
+        gridData.grabExcessVerticalSpace = true
+        gridData.verticalAlignment = GridData.FILL
+        sashForm.layoutData = gridData
     }
 
-    private void createSessionsComposite() {
-        SessionChangeListener sessionChangeListener = new SessionChangeAdapter() {
+    private fun createButtonBarComposite() {
+        val buttonBarComposite = Composite(this, SWT.NONE)
+        buttonBarComposite.layout = FillLayout()
 
-            public void sessionAdded(Session session) {
-                updateConnectButtons();
+        val gridData = GridData()
+        gridData.horizontalAlignment = GridData.CENTER
+        buttonBarComposite.layoutData = gridData
+
+        connectButton = Button(buttonBarComposite, SWT.PUSH)
+        connectButton.text = "Connect"
+        connectButton.toolTipText = "Connect"
+        connectButton.image = connectImage
+        connectButton.isEnabled = false
+
+        disconnectButton = Button(buttonBarComposite, SWT.PUSH)
+        disconnectButton.text = "Disconnect"
+        disconnectButton.toolTipText = "Disconnect"
+        disconnectButton.image = disconnectImage
+        disconnectButton.isEnabled = false
+
+        connectAllButton = Button(buttonBarComposite, SWT.PUSH)
+        connectAllButton.text = "Connect All"
+        connectAllButton.toolTipText = "Connect All"
+        connectAllButton.image = connectAllImage
+        connectAllButton.isEnabled = true
+
+        disconnectAllButton = Button(buttonBarComposite, SWT.PUSH)
+        disconnectAllButton.text = "Disconnect All"
+        disconnectAllButton.toolTipText = "Disconnect All"
+        disconnectAllButton.image = disconnectAllImage
+        disconnectAllButton.isEnabled = false
+
+        connectButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                val display = this@SshTunnelComposite.display
+                val runnable = Runnable { connect() }
+                display.asyncExec(runnable)
             }
+        })
 
-            public void sessionRemoved(Session session) {
-                updateConnectButtons();
+        disconnectButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                val display = this@SshTunnelComposite.display
+                val runnable = Runnable { disconnect() }
+                display.asyncExec(runnable)
             }
+        })
 
-            public void sessionSelectionChanged(Session session) {
-                SshTunnelComposite.this.currentSession = session;
-                tunnelsComposite.setSession(session);
-                updateConnectButtons();
+        connectAllButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                val display = this@SshTunnelComposite.display
+                val runnable = Runnable { connectAll() }
+                display.asyncExec(runnable)
             }
+        })
 
-        };
-        sessionsComposite = new SessionsComposite(sashForm, SWT.NONE, configuration.getSessions(), sessionChangeListener);
-    }
-
-    private void createTunnelsComposite() {
-        TunnelChangeListener tunnelChangeListener = new TunnelChangeAdapter();
-        tunnelsComposite = new TunnelsComposite(sashForm, shell, SWT.NONE, tunnelChangeListener);
-    }
-
-    private void createButtonBarComposite() {
-        Composite buttonBarComposite = new Composite(this, SWT.NONE);
-        buttonBarComposite.setLayout(new FillLayout());
-
-        GridData gridData = new GridData();
-        gridData.horizontalAlignment = GridData.CENTER;
-        buttonBarComposite.setLayoutData(gridData);
-
-        connectButton = new Button(buttonBarComposite, SWT.PUSH);
-        connectButton.setText("Connect");
-        connectButton.setToolTipText("Connect");
-        connectButton.setImage(connectImage);
-        connectButton.setEnabled(false);
-
-        disconnectButton = new Button(buttonBarComposite, SWT.PUSH);
-        disconnectButton.setText("Disconnect");
-        disconnectButton.setToolTipText("Disconnect");
-        disconnectButton.setImage(disconnectImage);
-        disconnectButton.setEnabled(false);
-
-        connectAllButton = new Button(buttonBarComposite, SWT.PUSH);
-        connectAllButton.setText("Connect All");
-        connectAllButton.setToolTipText("Connect All");
-        connectAllButton.setImage(connectAllImage);
-        connectAllButton.setEnabled(true);
-
-        disconnectAllButton = new Button(buttonBarComposite, SWT.PUSH);
-        disconnectAllButton.setText("Disconnect All");
-        disconnectAllButton.setToolTipText("Disconnect All");
-        disconnectAllButton.setImage(disconnectAllImage);
-        disconnectAllButton.setEnabled(false);
-
-        connectButton.addSelectionListener(new SelectionAdapter() {
-            public void widgetSelected(SelectionEvent e) {
-                Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = () -> connect();
-                display.asyncExec(runnable);
+        disconnectAllButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                val display = this@SshTunnelComposite.display
+                val runnable = Runnable { disconnectAll() }
+                display.asyncExec(runnable)
             }
-        });
-
-        disconnectButton.addSelectionListener(new SelectionAdapter() {
-            public void widgetSelected(SelectionEvent e) {
-                Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = () -> disconnect();
-                display.asyncExec(runnable);
-            }
-        });
-
-        connectAllButton.addSelectionListener(new SelectionAdapter() {
-            public void widgetSelected(SelectionEvent e) {
-                Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = () -> connectAll();
-                display.asyncExec(runnable);
-            }
-        });
-
-        disconnectAllButton.addSelectionListener(new SelectionAdapter() {
-            public void widgetSelected(SelectionEvent e) {
-                Display display = SshTunnelComposite.this.getDisplay();
-                Runnable runnable = () -> disconnectAll();
-                display.asyncExec(runnable);
-            }
-        });
+        })
     }
 
-    public void createStatusBarComposite() {
-        Composite statusBarComposite = new Composite(this, SWT.NONE);
+    private fun createStatusBarComposite() {
+        val statusBarComposite = Composite(this, SWT.NONE)
 
-        GridLayout statusBarGridLayout = new GridLayout(3, false);
-        statusBarGridLayout.marginRight = 2;
-        statusBarGridLayout.marginTop = 0;
-        statusBarComposite.setLayout(statusBarGridLayout);
-        statusBarComposite.setLayoutData(new GridData(SWT.FILL, SWT.END, true, false));
+        val statusBarGridLayout = GridLayout(3, false)
+        statusBarGridLayout.marginRight = 2
+        statusBarGridLayout.marginTop = 0
+        statusBarComposite.layout = statusBarGridLayout
+        statusBarComposite.layoutData = GridData(SWT.FILL, SWT.END, true, false)
 
-        Label siteLabel = new Label(statusBarComposite, SWT.NONE);
-        siteLabel.setText(APPLICATION_SITE);
-        siteLabel.setEnabled(false);
-        siteLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, true, false));
+        val siteLabel = Label(statusBarComposite, SWT.NONE)
+        siteLabel.text = APPLICATION_SITE
+        siteLabel.isEnabled = false
+        siteLabel.layoutData = GridData(SWT.BEGINNING, SWT.CENTER, true, false)
 
-        progressBar = new ProgressBar(statusBarComposite, SWT.INDETERMINATE);
-        progressBar.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
-        progressBar.setVisible(false);
+        progressBar = ProgressBar(statusBarComposite, SWT.INDETERMINATE)
+        progressBar.layoutData = GridData(SWT.END, SWT.CENTER, true, false)
+        progressBar.isVisible = false
 
-        Label versionLabel = new Label(statusBarComposite, SWT.NONE);
-        versionLabel.setText("   " + APPLICATION_VERSION);
-        versionLabel.setEnabled(false);
-        versionLabel.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
+        val versionLabel = Label(statusBarComposite, SWT.NONE)
+        versionLabel.text = "   $APPLICATION_VERSION"
+        versionLabel.isEnabled = false
+        versionLabel.layoutData = GridData(SWT.END, SWT.CENTER, false, false)
     }
 
-    private void showProgressBar() {
-        connectButton.setEnabled(false);
-        connectAllButton.setEnabled(false);
-        disconnectAllButton.setEnabled(false);
-        progressBar.setVisible(true);
-
+    private fun showProgressBar() {
+        connectButton.isEnabled = false
+        connectAllButton.isEnabled = false
+        disconnectAllButton.isEnabled = false
+        progressBar.isVisible = true
     }
 
-    private void stopProgressBar() {
-        progressBar.setVisible(false);
+    private fun stopProgressBar() {
+        progressBar.isVisible = false
     }
 
-    public void connectionStatusChanged() {
-        sessionsComposite.updateTable();
-        tunnelsComposite.updateTable();
-        updateConnectButtons();
-        stopProgressBar();
+    fun connectionStatusChanged() {
+        sessionsComposite.updateTable()
+        tunnelsComposite?.updateTable()
+        updateConnectButtons()
+        stopProgressBar()
     }
 
-    private void updateConnectButtons() {
-        connectButton.setEnabled(currentSession != null && !ConnectionManager.Companion.isConnected(currentSession));
-        disconnectButton.setEnabled(currentSession != null && ConnectionManager.Companion.isConnected(currentSession));
-        connectAllButton.setEnabled(anyDisconnectedSessions());
-        disconnectAllButton.setEnabled(anyConnectedSessions());
+    private fun updateConnectButtons() {
+        connectButton.isEnabled = !isConnected(currentSession)
+        disconnectButton.isEnabled = isConnected(currentSession)
+        connectAllButton.isEnabled = anyDisconnectedSessions()
+        disconnectAllButton.isEnabled = anyConnectedSessions()
     }
 
-    private boolean anyDisconnectedSessions() {
-        boolean result = false;
-        for (Session session : configuration.getSessions()) {
-            if (!ConnectionManager.Companion.isConnected(session)) {
-                result = true;
-                break;
+    private fun anyDisconnectedSessions(): Boolean {
+        var result = false
+        for (session in configuration.getSessions()) {
+            if (!isConnected(session)) {
+                result = true
+                break
             }
         }
-        return result;
+        return result
     }
 
-    private boolean anyConnectedSessions() {
-        boolean result = false;
-        for (Session session : configuration.getSessions()) {
-            if (ConnectionManager.Companion.isConnected(session)) {
-                result = true;
-                break;
+    private fun anyConnectedSessions(): Boolean {
+        var result = false
+        for (session in configuration.getSessions()) {
+            if (isConnected(session)) {
+                result = true
+                break
             }
         }
-        return result;
+        return result
     }
 
-    private void connect() {
-        connect(currentSession);
+    private fun connect(session: Session? = currentSession) {
+        save()
+        if (session != null && !isConnected(session)) {
+            showProgressBar()
 
-    }
-
-    private void connect(Session session) {
-        save();
-        if (session != null && !ConnectionManager.Companion.isConnected(session)) {
-            showProgressBar();
-
-            new Thread(() -> {
+            Thread {
                 try {
-                    ConnectionManager.Companion.connect(session, shell);
+                    connect(session, shell)
                     // Put to monitored list
-                    SessionConnectionMonitor.getInstance().addSession(session.sessionName, session);
-                } catch (ConnectionException ce) {
+                    SessionConnectionMonitor.getInstance().addSession(session.sessionName, session)
+                } catch (ce: ConnectionException) {
                     try {
-                        ConnectionManager.Companion.disconnect(session);
-                    } catch (Exception ignored) {
-
+                        ConnectionManager.disconnect(session)
+                    } catch (ignored: Exception) {
                     }
-                    Display.getDefault().asyncExec(() -> showErrorMessage("Unable to connect to '" + session.sessionName + "'", ce));
+                    Display.getDefault().asyncExec {
+                        showErrorMessage(
+                            "Unable to connect to '" + session.sessionName + "'",
+                            ce
+                        )
+                    }
                 }
-
-                Display.getDefault().asyncExec(this::connectionStatusChanged);
-            }).start();
+                Display.getDefault().asyncExec { this.connectionStatusChanged() }
+            }.start()
         }
     }
 
-    private void showErrorMessage(String message, Exception e) {
-        Throwable cause = getOriginatingCause(e);
-        MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
-        messageBox.setText("Error");
-        messageBox.setMessage(message + ": " + cause.getMessage());
-        messageBox.open();
+    private fun showErrorMessage(message: String, e: Exception) {
+        val cause = getOriginatingCause(e)
+        val messageBox = MessageBox(shell, SWT.ICON_ERROR or SWT.OK)
+        messageBox.text = "Error"
+        messageBox.message = message + ": " + cause.message
+        messageBox.open()
     }
 
-    public void showDisconnectedMessage(Session session) {
-        if (trayItem != null && trayItem.getVisible()) {
-            ToolTip tip = new ToolTip(shell, SWT.BALLOON | SWT.ICON_ERROR);
-            tip.setText("Session: " + session.sessionName);
-            tip.setMessage("Connection to " + session.hostname + " has been lost.");
-            trayItem.setToolTip(tip);
-            tip.setVisible(true);
+    fun showDisconnectedMessage(session: Session) {
+        if (trayItem.visible) {
+            val tip = ToolTip(shell, SWT.BALLOON or SWT.ICON_ERROR)
+            tip.text = "Session: " + session.sessionName
+            tip.message = "Connection to " + session.hostname + " has been lost."
+            trayItem.toolTip = tip
+            tip.isVisible = true
         }
     }
 
-    private Throwable getOriginatingCause(Exception e) {
-        Throwable cause = e;
-        while (cause.getCause() != null) {
-            cause = cause.getCause();
+    private fun getOriginatingCause(e: Exception): Throwable {
+        var cause: Throwable = e
+        while (cause.cause != null) {
+            cause = cause.cause!!
         }
-        return cause;
+        return cause
     }
 
-    private void disconnect() {
-        disconnect(currentSession);
-    }
-
-    private void disconnect(Session session) {
-        save();
-        if (session != null && ConnectionManager.Companion.isConnected(session)) {
-            ConnectionManager.Companion.disconnect(session);
-            SessionConnectionMonitor.getInstance().removeSession(session.sessionName);
+    private fun disconnect(session: Session? = currentSession) {
+        save()
+        if (session != null && isConnected(session)) {
+            ConnectionManager.disconnect(session)
+            SessionConnectionMonitor.getInstance().removeSession(session.sessionName)
         }
-        connectionStatusChanged();
+        connectionStatusChanged()
     }
 
-    private void connectAll() {
-        save();
-        showProgressBar();
+    private fun connectAll() {
+        save()
+        showProgressBar()
 
-        new Thread(() -> {
-            Session sessionToConnect = null;
+        Thread {
+            var sessionToConnect: Session? = null
             try {
-                for (Session session : configuration.getSessions()) {
-                    sessionToConnect = session;
-                    if (!ConnectionManager.Companion.isConnected(sessionToConnect)) {
-                        ConnectionManager.Companion.connect(sessionToConnect, shell);
+                for (session: Session in configuration.getSessions()) {
+                    sessionToConnect = session
+                    if (!isConnected(sessionToConnect)) {
+                        connect(sessionToConnect, shell)
                     }
                 }
-            } catch (ConnectionException ce) {
-                for (Session session : configuration.getSessions()) {
+            } catch (ce: ConnectionException) {
+                for (session: Session in configuration.getSessions()) {
                     try {
-                        ConnectionManager.Companion.disconnect(session);
-                    } catch (Exception ignored) {
+                        ConnectionManager.disconnect(session)
+                    } catch (ignored: Exception) {
                     }
                 }
 
-                final Session failedSession = sessionToConnect;
-                Display.getDefault().asyncExec(() -> showErrorMessage("Unable to connect to '" + failedSession.sessionName + "'", ce));
+                val failedSession: Session? = sessionToConnect
+                Display.getDefault().asyncExec {
+                    showErrorMessage(
+                        "Unable to connect to '" + failedSession!!.sessionName + "'",
+                        ce
+                    )
+                }
             }
-
-            Display.getDefault().asyncExec(this::connectionStatusChanged);
-        }).start();
+            Display.getDefault().asyncExec { this.connectionStatusChanged() }
+        }.start()
     }
 
-    private void disconnectAll() {
-        save();
-        for (Session session : configuration.getSessions()) {
-            if (ConnectionManager.Companion.isConnected(session)) {
-                ConnectionManager.Companion.disconnect(session);
+    private fun disconnectAll() {
+        save()
+        for (session in configuration.getSessions()) {
+            if (isConnected(session)) {
+                ConnectionManager.disconnect(session)
             }
         }
-        connectionStatusChanged();
+        connectionStatusChanged()
     }
 
-    private void createTrayIcon() {
-        Tray tray = this.getDisplay().getSystemTray();
+    private fun createTrayIcon() {
+        val tray: Tray = display.systemTray
 
-        trayItem = new TrayItem(tray, 0);
-        trayItem.setToolTipText(APPLICATION_TITLE);
-        trayItem.setImage(applicationImage);
+        trayItem = TrayItem(tray, 0)
+        trayItem.toolTipText = APPLICATION_TITLE
+        trayItem.image = applicationImage
 
-        trayItem.addSelectionListener(new SelectionAdapter() {
-            public void widgetSelected(SelectionEvent e) {
-                shell.setMinimized(!shell.getMinimized());
+        trayItem.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                shell.minimized = !shell.minimized
             }
-        });
+        })
 
-        trayItem.addMenuDetectListener(e -> {
-            Shell s = new Shell(e.display);
-            Menu m = new Menu(s, SWT.POP_UP);
+        trayItem.addMenuDetectListener { e: MenuDetectEvent ->
+            val s = Shell(e.display)
+            val m = Menu(s, SWT.POP_UP)
 
             // build menu
-            Listener menuItemListener = event -> {
-                Object source = event.widget.getData();
-                if (source instanceof Session session) {
-                    Runnable runnable = () -> {
-                        boolean connectedBefore = ConnectionManager.Companion.isConnected(session);
-                        if (connectedBefore) {
-                            disconnect(session);
-                        } else {
-                            connect(session);
+            val menuItemListener =
+                Listener { event: Event ->
+                    val source = event.widget.data
+                    if (source is Session) {
+                        val runnable = Runnable {
+                            val connectedBefore = isConnected(source)
+                            if (connectedBefore) {
+                                disconnect(source)
+                            } else {
+                                connect(source)
+                            }
+                            val connectedAfter = isConnected(source)
+                            if (connectedBefore != connectedAfter) {
+                                val title = "Session: " + source.sessionName
+                                val message =
+                                    source.sessionName + " is now " + (if (connectedAfter) "connected" else "disconnected") + "."
+                                val tip = ToolTip(shell, SWT.BALLOON or SWT.ICON_INFORMATION)
+                                tip.text = title
+                                tip.message = message
+                                trayItem.toolTip = tip
+                                tip.isVisible = true
+                            }
                         }
-                        boolean connectedAfter = ConnectionManager.Companion.isConnected(session);
-                        if (connectedBefore != connectedAfter) {
-                            String title = "Session: " + session.sessionName;
-                            String message = session.sessionName + " is now " + (connectedAfter ? "connected" : "disconnected") + ".";
-                            ToolTip tip = new ToolTip(shell, SWT.BALLOON | SWT.ICON_INFORMATION);
-                            tip.setText(title);
-                            tip.setMessage(message);
-                            trayItem.setToolTip(tip);
-                            tip.setVisible(true);
-                        }
-                    };
-                    event.display.asyncExec(runnable);
+                        event.display.asyncExec(runnable)
+                    }
                 }
-            };
 
-            for (Session session : configuration.getSessions()) {
-                MenuItem menuItem = new MenuItem(m, SWT.NONE);
-                menuItem.setData(session);
-                String text = session.sessionName;
-                menuItem.setText(text);
-                Image image = ConnectionManager.Companion.isConnected(session) ? connectedImage : disconnectedImage;
-                menuItem.setImage(image);
-                menuItem.addListener(SWT.Selection, menuItemListener);
+            for (session in configuration.getSessions()) {
+                val menuItem = MenuItem(m, SWT.NONE)
+                menuItem.data = session
+                val text = session.sessionName
+                menuItem.text = text
+                val image =
+                    if (isConnected(session)) connectedImage else disconnectedImage
+                menuItem.image = image
+                menuItem.addListener(SWT.Selection, menuItemListener)
             }
 
-            if (!configuration.getSessions().isEmpty()) {
-                new MenuItem(m, SWT.SEPARATOR);
+            if (configuration.getSessions().isNotEmpty()) {
+                MenuItem(m, SWT.SEPARATOR)
             }
 
-            MenuItem exit = new MenuItem(m, SWT.NONE);
-            exit.setText("Exit");
-            exit.addListener(SWT.Selection, event -> exit());
-
-            m.setVisible(true);
-        });
-    }
-
-    private void exit() {
-        disconnectAll();
-        SessionConnectionMonitor.getInstance().stopMonitor();
-        save();
-        Tray tray = this.getDisplay().getSystemTray();
-        for (TrayItem trayItem : tray.getItems()) {
-            trayItem.dispose();
+            val exit = MenuItem(m, SWT.NONE)
+            exit.text = "Exit"
+            exit.addListener(SWT.Selection) { exit() }
+            m.isVisible = true
         }
-        System.exit(0);
     }
 
-    private void disposeImages() {
-        applicationImage.dispose();
-        connectImage.dispose();
-        disconnectImage.dispose();
-        connectAllImage.dispose();
-        disconnectAllImage.dispose();
-        connectedImage.dispose();
-        disconnectedImage.dispose();
+    private fun exit() {
+        disconnectAll()
+        SessionConnectionMonitor.getInstance().stopMonitor()
+        save()
+        val tray = display.systemTray
+        for (trayItem in tray.items) {
+            trayItem.dispose()
+        }
+        exitProcess(0)
+    }
+
+    private fun disposeImages() {
+        applicationImage.dispose()
+        connectImage.dispose()
+        disconnectImage.dispose()
+        connectAllImage.dispose()
+        disconnectAllImage.dispose()
+        connectedImage.dispose()
+        disconnectedImage.dispose()
     }
 
     /**
-     * @see org.eclipse.swt.widgets.Widget#dispose()
+     * @see org.eclipse.swt.widgets.Widget.dispose
      */
-    public void dispose() {
-        disposeImages();
-        super.dispose();
+    override fun dispose() {
+        disposeImages()
+        super.dispose()
     }
 
+    companion object {
+        const val APPLICATION_TITLE: String = "SSH Tunnel NG"
+        private const val APPLICATION_VERSION = "v0.7"
+        private const val APPLICATION_SITE = "github.com/agung-m/sshtunnel-ng"
+        private const val APPLICATION_IMAGE_PATH = "/images/sshtunnel-ng.png"
+        private const val CONNECT_IMAGE_PATH = "/images/connect.png"
+        private const val DISCONNECT_IMAGE_PATH = "/images/disconnect.png"
+        private const val CONNECT_ALL_IMAGE_PATH = "/images/connect_all.png"
+        private const val DISCONNECT_ALL_IMAGE_PATH = "/images/disconnect_all.png"
+        private const val CONNECTED_IMAGE_PATH = "/images/bullet_green.png"
+        private const val DISCONNECTED_IMAGE_PATH = "/images/bullet_red.png"
+    }
 }
