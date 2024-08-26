@@ -24,12 +24,12 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.GridData
 import org.eclipse.swt.layout.GridLayout
 import org.eclipse.swt.widgets.*
-import org.programmerplanet.sshtunnel.model.Configuration
-import org.programmerplanet.sshtunnel.model.ConnectionException
-import org.programmerplanet.sshtunnel.model.ConnectionManager
+import org.programmerplanet.sshtunnel.model.*
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.changeTunnelIfSessionConnected
 import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.connect
 import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
-import org.programmerplanet.sshtunnel.model.Session
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.startTunnelIfSessionConnected
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.stopTunnelIfSessionConnected
 import java.io.IOException
 import java.io.InputStream
 import kotlin.system.exitProcess
@@ -94,10 +94,29 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
         layout = GridLayout()
         sashForm = SashForm(this, SWT.VERTICAL)
         createSashForm()        
-        val tunnelChangeListener: TunnelChangeListener = TunnelChangeAdapter()
-        val sessionChangeListener: SessionChangeListener = object : SessionChangeAdapter() {
+        val tunnelChangeListener: TunnelChangeListener = object : TunnelChangeListener {
+            override fun tunnelAdded(session: Session, tunnel: Tunnel) {
+                startTunnelIfSessionConnected(session, tunnel)
+            }
+
+            override fun tunnelChanged(session: Session, tunnel: Tunnel, prevTunnel: Tunnel?): Int {
+                return changeTunnelIfSessionConnected(session, tunnel, prevTunnel!!)
+            }
+
+            override fun tunnelRemoved(session: Session, tunnel: Tunnel) {
+                stopTunnelIfSessionConnected(session, tunnel)
+            }
+
+            override fun tunnelSelectionChanged(tunnel: Tunnel) {
+            }
+
+        }
+        val sessionChangeListener: SessionChangeListener = object : SessionChangeListener {
             override fun sessionAdded(session: Session) {
                 updateConnectButtons()
+            }
+
+            override fun sessionChanged(session: Session) {
             }
 
             override fun sessionRemoved(session: Session) {

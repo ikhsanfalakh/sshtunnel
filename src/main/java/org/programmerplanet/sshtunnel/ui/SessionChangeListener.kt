@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import org.programmerplanet.sshtunnel.model.Session;
+import org.programmerplanet.sshtunnel.model.Session
 
 /**
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public interface SessionChangeListener {
+interface SessionChangeListener {
+    fun sessionAdded(session: Session)
 
-	public void sessionAdded(Session session);
-	
-	public void sessionChanged(Session session);
+    fun sessionChanged(session: Session)
 
-	public void sessionRemoved(Session session);
+    fun sessionRemoved(session: Session)
 
-	public void sessionSelectionChanged(Session session);
-
+    fun sessionSelectionChanged(session: Session)
 }

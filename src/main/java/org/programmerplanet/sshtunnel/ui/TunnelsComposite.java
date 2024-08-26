@@ -262,11 +262,10 @@ public class TunnelsComposite extends Composite {
 				int row = tunnelTable.getSelectionIndex();
 				editTunnelButton.setEnabled(row > -1);
 				removeTunnelButton.setEnabled(row > -1);
-				Tunnel tunnel = null;
 				if (row > -1) {
-					tunnel = session.tunnels.get(row);
+					Tunnel tunnel = session.tunnels.get(row);
+					listener.tunnelSelectionChanged(tunnel);
 				}
-				listener.tunnelSelectionChanged(tunnel);
 			}
 		});
 	}
@@ -279,8 +278,7 @@ public class TunnelsComposite extends Composite {
 			Collections.sort(tunnels);
             for (Tunnel tunnel : tunnels) {
                 TableItem tableItem = new TableItem(tunnelTable, SWT.NULL);
-                //tableItem.setText(new String[] { tunnel.getLocalAddress(), Integer.toString(tunnel.getLocalPort()), tunnel.getLocal() ? "->" : "<-", tunnel.getRemoteAddress(), Integer.toString(tunnel.getRemotePort()) });
-                tableItem.setText(new String[]{tunnel.localAddress,
+				tableItem.setText(new String[]{tunnel.localAddress,
                         Integer.toString(tunnel.localPort),
                         tunnel.local ? "⇒" : "⇐",
 						tunnel.remoteAddress,
