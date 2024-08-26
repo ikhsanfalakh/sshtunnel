@@ -1,1 +1,6 @@
 /target
+/gradle
+gradlew
+gradlew.bat
+/build
+.gradle/
