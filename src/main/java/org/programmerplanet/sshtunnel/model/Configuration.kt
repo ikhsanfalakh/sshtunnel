@@ -37,7 +37,7 @@ class Configuration {
     var weights: IntArray = intArrayOf(5, 7)
     private val sessions: MutableList<Session> = ArrayList()
 
-    fun getSessions(): List<Session> {
+    fun getSessions(): MutableList<Session> {
         return sessions
     }
 

@@ -20,19 +20,10 @@ public class SessionConnectionMonitor implements Runnable {
 
 	private static final Log log = LogFactory.getLog(SessionConnectionMonitor.class);
 
-	private static final int DEF_MONITOR_INTERVAL = 10000;
-	private static final SessionConnectionMonitor INSTANCE = new SessionConnectionMonitor();
-
-	private final Object lock = new Object();
-	private Thread thread;
 	private Boolean threadStopped;
 	private final int monitorInterval;
 	private final Map<String, Session> sessions;
 	private SshTunnelComposite sshTunnelComposite;
-
-	public SessionConnectionMonitor() {
-		this(DEF_MONITOR_INTERVAL);
-	}
 
 	public SessionConnectionMonitor(int monitorInterval) {
 		sessions = new ConcurrentHashMap<>();
@@ -40,15 +31,12 @@ public class SessionConnectionMonitor implements Runnable {
 		this.monitorInterval = monitorInterval;
 	}
 
-	public void addSession(String name, Session session) {
-		sessions.put(name, session);
-	}
-
-	public void removeSession(String name) {
-		sessions.remove(name);
+	public void setThreadStopped(Boolean threadStopped) {
+		this.threadStopped = threadStopped;
 	}
 
 	public void run() {
+		this.threadStopped = false;
 		if (log.isWarnEnabled()) {
 			log.warn("Connection monitor is now running..");
 		}
@@ -81,36 +69,17 @@ public class SessionConnectionMonitor implements Runnable {
 			}
 		}
 	}
-	
+
+	public void addSession(String name, Session session) {
+		sessions.put(name, session);
+	}
+
+	public void removeSession(String name) {
+		sessions.remove(name);
+	}
+
 	public void setSshTunnelComposite(SshTunnelComposite sshTunnelComposite) {
 		this.sshTunnelComposite = sshTunnelComposite;
-	}
-
-	public void startMonitor() {
-		synchronized (lock) {
-			if (thread == null) {
-				thread = new Thread(this);
-				threadStopped = false;
-				thread.start();
-			}
-		}
-	}
-
-	public void stopMonitor() {
-		synchronized (lock) {
-			if (thread != null) {
-				threadStopped = true;
-				thread = null;
-				
-				if (log.isWarnEnabled()) {
-					log.warn("Connection monitor is stopped.");
-				}
-			}
-		}
-	}
-
-	public static SessionConnectionMonitor getInstance() {
-		return INSTANCE;
 	}
 
 }

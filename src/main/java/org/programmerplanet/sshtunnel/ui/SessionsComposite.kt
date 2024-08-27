@@ -13,270 +13,252 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.ControlAdapter;
-import org.eclipse.swt.events.ControlEvent;
-import org.eclipse.swt.events.MouseAdapter;
-import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.swt.widgets.TableItem;
-import org.programmerplanet.sshtunnel.model.ConnectionManager;
-import org.programmerplanet.sshtunnel.model.Session;
+import org.eclipse.swt.SWT
+import org.eclipse.swt.events.*
+import org.eclipse.swt.graphics.Image
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.layout.GridLayout
+import org.eclipse.swt.widgets.*
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
+import org.programmerplanet.sshtunnel.model.Session
+import java.io.IOException
+import java.util.*
 
 /**
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class SessionsComposite extends Composite {
+class SessionsComposite(
+    parent: Composite,
+    style: Int,
+    private val sessions: MutableList<Session>,
+    private val listener: SessionChangeListener
+) :
+    Composite(parent, style) {
+    private var sessionTable: Table
+    private var editSessionButton: Button
+    private var removeSessionButton: Button
 
-	private static final String CONNECTED_IMAGE_PATH = "/images/bullet_green.png";
-	private static final String DISCONNECTED_IMAGE_PATH = "/images/bullet_red.png";
-	private static final String ADD_IMAGE_PATH = "/images/add.png";
-	private static final String EDIT_IMAGE_PATH = "/images/edit.png";
-	private static final String DELETE_IMAGE_PATH = "/images/delete.png";
+    private var connectedImage: Image
+    private var disconnectedImage: Image
+    private var addImage: Image
+    private var editImage: Image
+    private var deleteImage: Image
 
-	private final List<Session> sessions;
-	private Table sessionTable;
-    private Button editSessionButton;
-	private Button removeSessionButton;
-	private final SessionChangeListener listener;
+    init {
+        connectedImage = loadImage(CONNECTED_IMAGE_PATH)
+        disconnectedImage = loadImage(DISCONNECTED_IMAGE_PATH)
+        addImage = loadImage(ADD_IMAGE_PATH)
+        editImage = loadImage(EDIT_IMAGE_PATH)
+        deleteImage = loadImage(DELETE_IMAGE_PATH)
+        layout = FillLayout()
+        val group = Group(this, SWT.NULL)
+        group.text = "Sessions"
+        group.layout = GridLayout()
 
-	private Image connectedImage;
-	private Image disconnectedImage;
-	private Image addImage;
-	private Image editImage;
-	private Image deleteImage;
+        val buttonBarComposite = Composite(group, SWT.NONE)
+        buttonBarComposite.layout = FillLayout()
 
-	public SessionsComposite(Composite parent, int style, List<Session> sessions, SessionChangeListener listener) {
-		super(parent, style);
-		this.sessions = sessions;
-		this.listener = listener;
-		initialize();
-	}
+        val gridData = GridData()
+        gridData.horizontalAlignment = GridData.END
+        buttonBarComposite.layoutData = gridData
 
-	private void initialize() {
-		createImages();
+        val addSessionButton = Button(buttonBarComposite, SWT.PUSH)
+        addSessionButton.text = "Add"
+        addSessionButton.toolTipText = "Add Session"
+        addSessionButton.image = addImage
 
-		this.setLayout(new FillLayout());
+        editSessionButton = Button(buttonBarComposite, SWT.PUSH)
+        removeSessionButton = Button(buttonBarComposite, SWT.PUSH)
+        createButtonBarComposite(addSessionButton)
 
-		Group group = new Group(this, SWT.NULL);
-		group.setText("Sessions");
-		group.setLayout(new GridLayout());
+        sessionTable = Table(group, SWT.SINGLE or SWT.BORDER or SWT.FULL_SELECTION)
+        createTable()
+        updateTable()
+    }
 
-		createButtonBarComposite(group);
-		createTable(group);
+    private fun createButtonBarComposite(addSessionButton: Button) {
+        editSessionButton.text = "Edit"
+        editSessionButton.toolTipText = "Edit Session"
+        editSessionButton.image = editImage
+        editSessionButton.isEnabled = false
 
-		updateTable();
-	}
+        removeSessionButton.text = "Remove"
+        removeSessionButton.toolTipText = "Remove Session"
+        removeSessionButton.image = deleteImage
+        removeSessionButton.isEnabled = false
 
-	private void createButtonBarComposite(Group group) {
-		Composite buttonBarComposite = new Composite(group, SWT.NONE);
-		buttonBarComposite.setLayout(new FillLayout());
+        addSessionButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                addSession()
+            }
+        })
 
-		GridData gridData = new GridData();
-		gridData.horizontalAlignment = GridData.END;
-		buttonBarComposite.setLayoutData(gridData);
+        editSessionButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                editSession()
+            }
+        })
 
-        Button addSessionButton = new Button(buttonBarComposite, SWT.PUSH);
-		addSessionButton.setText("Add");
-		addSessionButton.setToolTipText("Add Session");
-		addSessionButton.setImage(addImage);
+        removeSessionButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) {
+                removeSession()
+            }
+        })
+    }
 
-		editSessionButton = new Button(buttonBarComposite, SWT.PUSH);
-		editSessionButton.setText("Edit");
-		editSessionButton.setToolTipText("Edit Session");
-		editSessionButton.setImage(editImage);
-		editSessionButton.setEnabled(false);
+    private fun createTable() {
+        sessionTable.headerVisible = true
+        sessionTable.linesVisible = true
 
-		removeSessionButton = new Button(buttonBarComposite, SWT.PUSH);
-		removeSessionButton.setText("Remove");
-		removeSessionButton.setToolTipText("Remove Session");
-		removeSessionButton.setImage(deleteImage);
-		removeSessionButton.setEnabled(false);
+        val column1 = TableColumn(sessionTable, SWT.NULL)
+        column1.text = " "
 
-		addSessionButton.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				addSession();
-			}
-		});
+        val column2 = TableColumn(sessionTable, SWT.NULL)
+        column2.text = "Name"
 
-		editSessionButton.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				editSession();
-			}
-		});
+        val column3 = TableColumn(sessionTable, SWT.NULL)
+        column3.text = "Hostname"
 
-		removeSessionButton.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				removeSession();
-			}
-		});
-	}
+        val column4 = TableColumn(sessionTable, SWT.NULL)
+        column4.text = "Port"
 
-	private void createTable(Group group) {
-		sessionTable = new Table(group, SWT.SINGLE | SWT.BORDER | SWT.FULL_SELECTION);
-		sessionTable.setHeaderVisible(true);
-		sessionTable.setLinesVisible(true);
+        val column5 = TableColumn(sessionTable, SWT.NULL)
+        column5.text = "Username"
 
-		TableColumn column1 = new TableColumn(sessionTable, SWT.NULL);
-		column1.setText(" ");
+        val gridData = GridData()
+        gridData.grabExcessHorizontalSpace = true
+        gridData.horizontalAlignment = GridData.FILL
+        gridData.grabExcessVerticalSpace = true
+        gridData.verticalAlignment = GridData.FILL
+        sessionTable.layoutData = gridData
 
-		TableColumn column2 = new TableColumn(sessionTable, SWT.NULL);
-		column2.setText("Name");
+        sessionTable.addControlListener(object : ControlAdapter() {
+            override fun controlResized(e: ControlEvent) {
+                val iconColumnWidth = 22
+                val portColumnWidth = 100
 
-		TableColumn column3 = new TableColumn(sessionTable, SWT.NULL);
-		column3.setText("Hostname");
+                val area = sessionTable.clientArea
+                var relativeWidth = area.width
+                relativeWidth -= iconColumnWidth
+                relativeWidth -= portColumnWidth
+                relativeWidth /= 3
 
-		TableColumn column4 = new TableColumn(sessionTable, SWT.NULL);
-		column4.setText("Port");
+                sessionTable.getColumn(0).width = iconColumnWidth
+                sessionTable.getColumn(1).width = relativeWidth
+                sessionTable.getColumn(2).width = relativeWidth
+                sessionTable.getColumn(3).width = portColumnWidth
+                sessionTable.getColumn(4).width = relativeWidth
+            }
+        })
 
-		TableColumn column5 = new TableColumn(sessionTable, SWT.NULL);
-		column5.setText("Username");
+        sessionTable.addMouseListener(object : MouseAdapter() {
+            override fun mouseDoubleClick(e: MouseEvent) {
+                editSession()
+            }
+        })
 
-		GridData gridData = new GridData();
-		gridData.grabExcessHorizontalSpace = true;
-		gridData.horizontalAlignment = GridData.FILL;
-		gridData.grabExcessVerticalSpace = true;
-		gridData.verticalAlignment = GridData.FILL;
-		sessionTable.setLayoutData(gridData);
+        sessionTable.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(event: SelectionEvent) {
+                val row = sessionTable.selectionIndex
+                editSessionButton.isEnabled = row > -1
+                removeSessionButton.isEnabled = row > -1
+                if (row > -1) {
+                    val session: Session = sessions[row]
+                    listener.sessionSelectionChanged(session)
+                }
+            }
+        })
+    }
 
-		sessionTable.addControlListener(new ControlAdapter() {
-			public void controlResized(ControlEvent e) {
-				int iconColumnWidth = 22;
-				int portColumnWidth = 100;
-
-				Rectangle area = sessionTable.getClientArea();
-				int relativeWidth = area.width;
-				relativeWidth -= iconColumnWidth;
-				relativeWidth -= portColumnWidth;
-				relativeWidth /= 3;
-
-				TableColumn column1 = sessionTable.getColumn(0);
-				column1.setWidth(iconColumnWidth);
-				TableColumn column2 = sessionTable.getColumn(1);
-				column2.setWidth(relativeWidth);
-				TableColumn column3 = sessionTable.getColumn(2);
-				column3.setWidth(relativeWidth);
-				TableColumn column4 = sessionTable.getColumn(3);
-				column4.setWidth(portColumnWidth);
-				TableColumn column5 = sessionTable.getColumn(4);
-				column5.setWidth(relativeWidth);
-
-			}
-		});
-
-		sessionTable.addMouseListener(new MouseAdapter() {
-			public void mouseDoubleClick(MouseEvent e) {
-				editSession();
-			}
-		});
-
-		sessionTable.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent event) {
-				int row = sessionTable.getSelectionIndex();
-				editSessionButton.setEnabled(row > -1);
-				removeSessionButton.setEnabled(row > -1);
-				Session session = null;
-				if (row > -1) {
-					session = sessions.get(row);
-				}
-				listener.sessionSelectionChanged(session);
-			}
-		});
-	}
-
-	private void createImages() {
-		connectedImage = loadImage(CONNECTED_IMAGE_PATH);
-		disconnectedImage = loadImage(DISCONNECTED_IMAGE_PATH);
-		addImage = loadImage(ADD_IMAGE_PATH);
-		editImage = loadImage(EDIT_IMAGE_PATH);
-		deleteImage = loadImage(DELETE_IMAGE_PATH);
-	}
-
-	private Image loadImage(String path) {
-        try (InputStream stream = SessionsComposite.class.getResourceAsStream(path)) {
-            return new Image(this.getDisplay(), stream);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private fun loadImage(path: String): Image {
+        try {
+            SessionsComposite::class.java.getResourceAsStream(path).use { stream ->
+                return Image(
+                    this.display, stream
+                )
+            }
+        } catch (e: IOException) {
+            throw RuntimeException(e)
         }
     }
 
-	public void updateTable() {
-		sessionTable.removeAll();
-		Collections.sort(sessions);
-        for (Session session : sessions) {
-            TableItem tableItem = new TableItem(sessionTable, SWT.NULL);
-            tableItem.setText(new String[]{"", session.sessionName, session.hostname, Integer.toString(session.port), session.username});
-            Image image = ConnectionManager.Companion.isConnected(session) ? connectedImage : disconnectedImage;
-            tableItem.setImage(0, image);
+    fun updateTable() {
+        sessionTable.removeAll()
+        sessions.sort()
+        for (session in sessions) {
+            val tableItem = TableItem(sessionTable, SWT.NULL)
+            tableItem.setText(
+                arrayOf(
+                    "",
+                    session.sessionName,
+                    session.hostname,
+                    session.port.toString(),
+                    session.username
+                )
+            )
+            val image = if (isConnected(session)) connectedImage else disconnectedImage
+            tableItem.setImage(0, image)
         }
-	}
+    }
 
-	private void addSession() {
-		Session session = new Session();
-		EditSessionDialog dialog = new EditSessionDialog(this.getShell(), session);
-		int result = dialog.open();
-		if (result == SWT.OK) {
-			sessions.add(session);
-			updateTable();
-			listener.sessionAdded(session);
-		}
-	}
+    private fun addSession() {
+        val session = Session()
+        val dialog = EditSessionDialog(this.shell, session)
+        val result = dialog.open()
+        if (result == SWT.OK) {
+            sessions.add(session)
+            updateTable()
+            listener.sessionAdded(session)
+        }
+    }
 
-	private void editSession() {
-		int row = sessionTable.getSelectionIndex();
-		if (row > -1) {
-			Session session = sessions.get(row);
-			EditSessionDialog dialog = new EditSessionDialog(this.getShell(), session);
-			int result = dialog.open();
-			if (result == SWT.OK) {
-				updateTable();
-				listener.sessionChanged(session);
-			}
-		}
-	}
+    private fun editSession() {
+        val row = sessionTable.selectionIndex
+        if (row > -1) {
+            val session = sessions[row]
+            val dialog = EditSessionDialog(this.shell, session)
+            val result = dialog.open()
+            if (result == SWT.OK) {
+                updateTable()
+                listener.sessionChanged(session)
+            }
+        }
+    }
 
-	private void removeSession() {
-		int row = sessionTable.getSelectionIndex();
-		if (row > -1) {
-			Session session = sessions.remove(row);
-			updateTable();
-			listener.sessionRemoved(session);
-		}
-	}
+    private fun removeSession() {
+        val row = sessionTable.selectionIndex
+        if (row > -1) {
+            val session = sessions.removeAt(row)
+            updateTable()
+            listener.sessionRemoved(session)
+        }
+    }
 
-	private void disposeImages() {
-		connectedImage.dispose();
-		disconnectedImage.dispose();
-		addImage.dispose();
-		editImage.dispose();
-		deleteImage.dispose();
-	}
+    private fun disposeImages() {
+        connectedImage.dispose()
+        disconnectedImage.dispose()
+        addImage.dispose()
+        editImage.dispose()
+        deleteImage.dispose()
+    }
 
-	/**
-	 * @see org.eclipse.swt.widgets.Widget#dispose()
-	 */
-	public void dispose() {
-		disposeImages();
-		super.dispose();
-	}
+    /**
+     * @see org.eclipse.swt.widgets.Widget.dispose
+     */
+    override fun dispose() {
+        disposeImages()
+        super.dispose()
+    }
 
+    companion object {
+        private const val CONNECTED_IMAGE_PATH = "/images/bullet_green.png"
+        private const val DISCONNECTED_IMAGE_PATH = "/images/bullet_red.png"
+        private const val ADD_IMAGE_PATH = "/images/add.png"
+        private const val EDIT_IMAGE_PATH = "/images/edit.png"
+        private const val DELETE_IMAGE_PATH = "/images/delete.png"
+    }
 }
