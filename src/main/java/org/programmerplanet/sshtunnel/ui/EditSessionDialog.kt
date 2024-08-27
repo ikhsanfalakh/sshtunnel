@@ -209,6 +209,8 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         passText.editable = savePassword
         if (!savePassword) {
             passText.text = ""
+        } else {
+            passText.text = session.password
         }
     }
 
@@ -218,6 +220,8 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         ciphersText.editable = isChosen
         if (!isChosen) {
             ciphersText.text = ""
+        } else {
+            ciphersText.text = session.ciphers
         }
     }
 
