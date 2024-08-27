@@ -79,8 +79,4 @@ class DefaultUserInfo @JvmOverloads constructor(
         override fun run() {
         }
     }
-
-    companion object {
-        private const val MAX_ATTEMPTS = 3
-    }
 }

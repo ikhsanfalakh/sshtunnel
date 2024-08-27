@@ -13,154 +13,104 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Text;
-import org.programmerplanet.sshtunnel.model.Tunnel;
+import org.eclipse.swt.SWT
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.layout.GridLayout
+import org.eclipse.swt.widgets.*
+import org.programmerplanet.sshtunnel.model.Tunnel
 
 /**
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class EditTunnelDialog extends CustomDialog {
+class EditTunnelDialog(parent: Shell, private val tunnel: Tunnel) : CustomDialog(parent) {
 
-	private Tunnel tunnel;
-	private Text localAddressText;
-	private Text localPortText;
-	private Text remoteAddressText;
-	private Text remotePortText;
-	private Button localRadioButton;
-	private Button remoteRadioButton;
+    private lateinit var localAddressText: Text
+    private lateinit var localPortText: Text
+    private lateinit var remoteAddressText: Text
+    private lateinit var remotePortText: Text
+    private lateinit var localRadioButton: Button
+    private lateinit var remoteRadioButton: Button
 
-	public EditTunnelDialog(Shell parent, Tunnel tunnel) {
-		super(parent);
-		this.setText("Tunnel");
-		this.tunnel = tunnel;
-	}
+    init {
+        this.text = "Tunnel"
+    }
 
-	protected void initialize(Composite parent) {
-		GridLayout layout = new GridLayout();
-		layout.numColumns = 2;
-		parent.setLayout(layout);
+    override fun initialize(parent: Composite) {
+        val layout = GridLayout()
+        layout.numColumns = 2
+        parent.layout = layout
 
-		Label localAddressLabel = new Label(parent, SWT.RIGHT);
-		localAddressLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		localAddressLabel.setText("Local Address:");
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Local Address:"
+        }
 
-		localAddressText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		GridData gridData1 = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData1.widthHint = 200;
-		localAddressText.setLayoutData(gridData1);
+        localAddressText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label localPortLabel = new Label(parent, SWT.RIGHT);
-		localPortLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		localPortLabel.setText("Local Port:");
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Local Port:"
+        }
 
-		localPortText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		GridData gridData2 = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData2.widthHint = 200;
-		localPortText.setLayoutData(gridData2);
+        localPortText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label remoteAddressLabel = new Label(parent, SWT.RIGHT);
-		remoteAddressLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		remoteAddressLabel.setText("Remote Address:");
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Remote Address:"
+        }
 
-		remoteAddressText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		GridData gridData3 = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData3.widthHint = 200;
-		remoteAddressText.setLayoutData(gridData3);
+        remoteAddressText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label remotePortLabel = new Label(parent, SWT.RIGHT);
-		remotePortLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		remotePortLabel.setText("Remote Port:");
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Remote Port:"
+        }
 
-		remotePortText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		GridData gridData4 = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData1.widthHint = 200;
-		remotePortText.setLayoutData(gridData4);
+        remotePortText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label directionLabel = new Label(parent, SWT.RIGHT);
-		directionLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		directionLabel.setText("Direction:");
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Direction:"
+        }
 
-		Composite directionComposite = new Composite(parent, SWT.NONE);
-		GridData gridData5 = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData5.widthHint = 200;
-		directionComposite.setLayoutData(gridData5);
-		directionComposite.setLayout(new FillLayout());
+        val directionComposite = Composite(parent, SWT.NONE).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		localRadioButton = new Button(directionComposite, SWT.RADIO);
-		localRadioButton.setText("Local");
+        directionComposite.layout = FillLayout()
 
-		remoteRadioButton = new Button(directionComposite, SWT.RADIO);
-		remoteRadioButton.setText("Remote");
+        localRadioButton = Button(directionComposite, SWT.RADIO).apply { text = "Local" }
+        remoteRadioButton = Button(directionComposite, SWT.RADIO).apply { text = "Remote" }
 
-		setLocalAddress(tunnel.localAddress);
-		setLocalPort(tunnel.localPort);
-		setRemoteAddress(tunnel.remoteAddress);
-		setRemotePort(tunnel.remotePort);
-		setLocal(tunnel.local);
-	}
+        localAddressText.text = tunnel.localAddress.orEmpty()
+        localPortText.text = tunnel.localPort.takeIf { it > 0 }?.toString().orEmpty()
+        remoteAddressText.text = tunnel.remoteAddress.orEmpty()
+        remotePortText.text = tunnel.remotePort.takeIf { it > 0 }?.toString().orEmpty()
+        localRadioButton.selection = tunnel.local
+        remoteRadioButton.selection = !tunnel.local
+    }
 
-	protected void okPressed() {
-		tunnel.localAddress = getLocalAddress();
-		tunnel.localPort = getLocalPort();
-		tunnel.remoteAddress = getRemoteAddress();
-		tunnel.remotePort = getRemotePort();
-		tunnel.local = getLocal();
-		super.okPressed();
-	}
-
-	private String getLocalAddress() {
-		return localAddressText.getText();
-	}
-
-	private int getLocalPort() {
-		return Integer.parseInt(localPortText.getText());
-	}
-
-	private String getRemoteAddress() {
-		return remoteAddressText.getText();
-	}
-
-	private int getRemotePort() {
-		return Integer.parseInt(remotePortText.getText());
-	}
-
-	private boolean getLocal() {
-		return localRadioButton.getSelection();
-	}
-
-	private void setLocalAddress(String localAddress) {
-		localAddressText.setText(localAddress != null ? localAddress : "");
-	}
-
-	private void setLocalPort(int localPort) {
-		localPortText.setText(localPort > 0 ? Integer.toString(localPort) : "");
-	}
-
-	private void setRemoteAddress(String remoteAddress) {
-		remoteAddressText.setText(remoteAddress != null ? remoteAddress : "");
-	}
-
-	private void setRemotePort(int remotePort) {
-		remotePortText.setText(remotePort > 0 ? Integer.toString(remotePort) : "");
-	}
-
-	private void setLocal(boolean local) {
-		if (local) {
-			localRadioButton.setSelection(true);
-		} else {
-			remoteRadioButton.setSelection(true);
-		}
-	}
+    override fun okPressed() {
+        tunnel.apply {
+            localAddress = localAddressText.text.orEmpty()
+            localPort = localPortText.text.toIntOrNull() ?: 0
+            remoteAddress = remoteAddressText.text.orEmpty()
+            remotePort = localPortText.text.toIntOrNull() ?: 0
+            local = localRadioButton.selection
+        }
+        super.okPressed()
+    }
 
 }

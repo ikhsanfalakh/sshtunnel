@@ -14,303 +14,215 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.DirectoryDialog;
-import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Text;
-import org.programmerplanet.sshtunnel.model.Session;
+import org.eclipse.swt.SWT
+import org.eclipse.swt.events.SelectionAdapter
+import org.eclipse.swt.events.SelectionEvent
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.layout.GridLayout
+import org.eclipse.swt.widgets.*
+import org.programmerplanet.sshtunnel.model.Session
 
 /**
- * @author <a href="agungm@outlook.com">Mulya Agung</a>
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ * @author [Mulya Agung](agungm@outlook.com)
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class EditSessionDialog extends CustomDialog {
+class EditSessionDialog(parent: Shell, private val session: Session) :
+    CustomDialog(parent) {
+    private lateinit var nameText: Text
+    private lateinit var hostText: Text
+    private lateinit var portText: Text
+    private lateinit var userText: Text
+    private lateinit var savePassCheckbox: Button
+    private lateinit var passText: Text
+    private lateinit var privKeyText: Text
+    private lateinit var passPhraseText: Text
+    private lateinit var compressionCheckbox: Button
+    private lateinit var ciphersText: Text
+    private lateinit var chooseCiphersCheckbox: Button
+    private lateinit var debugLogDirText: Text
 
-	private final Session session;
-	private Text nameText;
-	private Text hostText;
-	private Text portText;
-	private Text userText;
-	private Button savePassCheckbox;
-	private Text passText;
-	private Text privKeyText;
-	private Text passPhraseText;
-	private Button compressionCheckbox;
-	private Text ciphersText;
-	private Button chooseCiphersCheckbox;
-    private Text debugLogDirText;
-    private static final String[] PRIVATE_KEY_NAMES = {"All Files"};
-	private static final String[] PRIVATE_KEY_EXT = {"*"};
+    init {
+        this.text = "Session"
+    }
 
-	public EditSessionDialog(Shell parent, Session session) {
-		super(parent);
-		this.setText("Session");
-		this.session = session;
-	}
+    override fun initialize(parent: Composite) {
+        val layout = GridLayout()
+        layout.numColumns = 2
+        parent.layout = layout
 
-	protected void initialize(Composite parent) {
-		GridLayout layout = new GridLayout();
-		layout.numColumns = 2;
-		parent.setLayout(layout);
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Name:"
+        }
 
-		GridData gridData;
+        nameText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label nameLabel = new Label(parent, SWT.RIGHT);
-		nameLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		nameLabel.setText("Name:");
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Host:"
+        }
 
-		nameText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		nameText.setLayoutData(gridData);
-		// Padding space
-		//new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
+        hostText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label hostLabel = new Label(parent, SWT.RIGHT);
-		hostLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		hostLabel.setText("Host:");
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Port:"
+        }
 
-		hostText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		hostText.setLayoutData(gridData);
-		//new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
+        portText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label portLabel = new Label(parent, SWT.RIGHT);
-		portLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		portLabel.setText("Port:");
+        val userLabel = Label(parent, SWT.RIGHT)
+        userLabel.layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+        userLabel.text = "Username:"
 
-		portText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		portText.setLayoutData(gridData);
-		//new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
+        userText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		Label userLabel = new Label(parent, SWT.RIGHT);
-		userLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		userLabel.setText("Username:");
+        savePassCheckbox = Button(parent, SWT.CHECK).apply {
+            text = "Password"
+            addSelectionListener(object : SelectionAdapter() {
+                override fun widgetSelected(e: SelectionEvent) {
+                    setSavePassword(savePassCheckbox.selection)
+                }
+            })
+        }
 
-		userText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		userText.setLayoutData(gridData);
-		savePassCheckbox = new Button(parent, SWT.CHECK);
-		savePassCheckbox.setText("Password");
-		savePassCheckbox.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				setSavePassword(savePassCheckbox.getSelection());
-			}
-		});
+        passText = Text(parent, SWT.SINGLE or SWT.BORDER or SWT.PASSWORD).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-		passText = new Text(parent, SWT.SINGLE | SWT.BORDER | SWT.PASSWORD);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		passText.setLayoutData(gridData);
-		setSavePassword(false);
-        Button privKeyButton = new Button(parent, SWT.PUSH);
-		privKeyButton.setText("Identify file");
-		privKeyButton.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		privKeyButton.addSelectionListener(new SelectionAdapter() {
-		      public void widgetSelected(SelectionEvent event) {
-		        FileDialog dlg = new FileDialog(parent.getShell(), SWT.OPEN);
-		        dlg.setFilterNames(PRIVATE_KEY_NAMES);
-		        dlg.setFilterExtensions(PRIVATE_KEY_EXT);
-		        String fn = dlg.open();
-		        if (fn != null) {
-		          privKeyText.setText(fn);
-		        }
-		      }
-		    });
-		
-		privKeyText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		privKeyText.setLayoutData(gridData);
-		
-		Label passPhraseLabel = new Label(parent, SWT.RIGHT);
-		passPhraseLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		passPhraseLabel.setText("Passphrase:");
-		
-		passPhraseText = new Text(parent, SWT.SINGLE | SWT.BORDER | SWT.PASSWORD);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		passPhraseText.setLayoutData(gridData);
-		
-		chooseCiphersCheckbox = new Button(parent, SWT.CHECK);
-		chooseCiphersCheckbox.setText("Ciphers");
-		chooseCiphersCheckbox.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		chooseCiphersCheckbox.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				setChooseCiphers(chooseCiphersCheckbox.getSelection());
-			}
-		});
+        val privKeyButton = Button(parent, SWT.PUSH)
+        privKeyButton.text = "Identify file"
+        privKeyButton.layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+        privKeyButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(event: SelectionEvent) {
+                val dlg = FileDialog(parent.shell, SWT.OPEN)
+                dlg.filterNames = PRIVATE_KEY_NAMES
+                dlg.filterExtensions = PRIVATE_KEY_EXT
+                val fn = dlg.open()
+                if (fn != null) {
+                    privKeyText.text = fn
+                }
+            }
+        })
 
-		ciphersText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		gridData = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData.widthHint = 200;
-		ciphersText.setLayoutData(gridData);
-		setChooseCiphers(false);
+        privKeyText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-        Button debugLogDirButton = new Button(parent, SWT.PUSH);
-		debugLogDirButton.setText("Log directory");
-		debugLogDirButton.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-		debugLogDirButton.addSelectionListener(new SelectionAdapter() {
-		      public void widgetSelected(SelectionEvent event) {
-		        DirectoryDialog dlg = new DirectoryDialog(parent.getShell());
-		        String fn = dlg.open();
-		        if (fn != null) {
-		          debugLogDirText.setText(fn);
-		        }
-		      }
-		    });
-		
-		debugLogDirText = new Text(parent, SWT.SINGLE | SWT.BORDER);
-		debugLogDirText.setLayoutData(gridData);
+        val passPhraseLabel = Label(parent, SWT.RIGHT)
+        passPhraseLabel.layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+        passPhraseLabel.text = "Passphrase:"
 
-		new Label(parent, SWT.LEAD).setLayoutData(new GridData(GridData.END, GridData.END, false, false));
-		
-		compressionCheckbox = new Button(parent, SWT.CHECK);
-		compressionCheckbox.setText("Compression");
-		compressionCheckbox.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent e) {
-				setCompression(compressionCheckbox.getSelection());
-			}
-		});
-		
-		setSessionName(session.sessionName);
-		setHostname(session.hostname);
-		setPort(session.port);
-		setUsername(session.username);
-		setPassword(session.password);
-		setIdentityPath(session.identityPath);
-		setPassPhrase(session.passPhrase);
-		setCompression(session.isCompressed);
-		setCiphers(session.ciphers);
-		setDebugLogDir(session.debugLogPath);
-	}
+        passPhraseText = Text(parent, SWT.SINGLE or SWT.BORDER or SWT.PASSWORD).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-	protected void okPressed() {
-		session.sessionName = getSessionName();
-		session.hostname = getHostname();
-		session.port = getPort();
-		session.username = getUsername();
-		session.password = getPassword();
-		session.identityPath = getIdentityPath();
-		session.passPhrase = getPassPhrase();
-		session.isCompressed = getCompression();
-		session.ciphers = getCiphers();
-		session.debugLogPath = getDebugLogDir();
-		super.okPressed();
-	}
+        chooseCiphersCheckbox = Button(parent, SWT.CHECK).apply {
+            text = "Ciphers"
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            addSelectionListener(object : SelectionAdapter() {
+                override fun widgetSelected(e: SelectionEvent) {
+                    setChooseCiphers(selection)
+                }
+            })
+        }
 
-	private void setSavePassword(boolean savePassword) {
-		savePassCheckbox.setSelection(savePassword);
-		passText.setEnabled(savePassword);
-		passText.setEditable(savePassword);
-		if (!savePassword) {
-			passText.setText("");
-		}
-	}
-	
-	private void setCompression(boolean isCompressed) {
-		compressionCheckbox.setSelection(isCompressed);
-	}
-	
-	private boolean getCompression() {
-		return compressionCheckbox.getSelection();
-	}
-	
-	private void setChooseCiphers(boolean isChosen) {
-		chooseCiphersCheckbox.setSelection(isChosen);
-		ciphersText.setEnabled(isChosen);
-		ciphersText.setEditable(isChosen);
-		if (!isChosen) {
-			ciphersText.setText("");
-		}
-	}
-	
-	private String getCiphers() {
-		return ciphersText.getText();
-	}
+        ciphersText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
+            layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
+        }
 
-	private String getSessionName() {
-		return nameText.getText();
-	}
+        val debugLogDirButton = Button(parent, SWT.PUSH)
+        debugLogDirButton.text = "Log directory"
+        debugLogDirButton.layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+        debugLogDirButton.addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(event: SelectionEvent) {
+                val dlg = DirectoryDialog(parent.shell)
+                val fn = dlg.open()
+                if (fn != null) {
+                    debugLogDirText.text = fn
+                }
+            }
+        })
 
-	private String getHostname() {
-		return hostText.getText();
-	}
+        debugLogDirText = Text(parent, SWT.SINGLE or SWT.BORDER)
+        debugLogDirText.layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
 
-	private int getPort() {
-		return Integer.parseInt(portText.getText());
-	}
+        Label(parent, SWT.LEAD).layoutData = GridData(GridData.END, GridData.END, false, false)
 
-	private String getUsername() {
-		return userText.getText();
-	}
+        compressionCheckbox = Button(parent, SWT.CHECK)
+        compressionCheckbox.text = "Compression"
 
-	private String getPassword() {
-		return passText.getText();
-	}
-	
-	private String getIdentityPath() {
-		return privKeyText.getText();
-	}
-	
-	private String getPassPhrase() {
-		return passPhraseText.getText();
-	}
-	
-	private String getDebugLogDir() {
-		return debugLogDirText.getText();
-	}
+        nameText.text = session.sessionName
+        hostText.text= session.hostname.orEmpty()
+        portText.text = session.port.takeIf { it > 0 }?.toString().orEmpty()
+        userText.text = session.username.orEmpty()
 
-	private void setSessionName(String sessionName) {
-		nameText.setText(sessionName != null ? sessionName : "");
-	}
+        if ((session.password != null) && (session.password?.trim { it <= ' ' }?.isNotEmpty() == true)) {
+            setSavePassword(true)
+        }
+        else {
+            setSavePassword(false)
+        }
 
-	private void setHostname(String hostname) {
-		hostText.setText(hostname != null ? hostname : "");
-	}
+        privKeyText.text = session.identityPath.orEmpty()
+        passPhraseText.text = session.passPhrase.orEmpty()
 
-	private void setPort(int port) {
-		portText.setText(port > 0 ? Integer.toString(port) : "");
-	}
+        if ((session.ciphers != null) && (session.ciphers?.trim { it <= ' ' }?.isNotEmpty() == true)) {
+            setChooseCiphers(true)
+        }
+        else {
+            setChooseCiphers(false)
+        }
+        debugLogDirText.text = session.debugLogPath.orEmpty()
+        compressionCheckbox.selection = session.isCompressed
+    }
 
-	private void setUsername(String username) {
-		userText.setText(username != null ? username : "");
-	}
+    override fun okPressed() {
+        session.apply {
+            sessionName = nameText.text.orEmpty()
+            hostname = hostText.text.orEmpty()
+            port = portText.text.toIntOrNull() ?: 0
+            username = userText.text.orEmpty()
+            password = passText.text.orEmpty()
+            identityPath = privKeyText.text.orEmpty()
+            passPhrase = passPhraseText.text.orEmpty()
+            isCompressed = compressionCheckbox.selection
+            ciphers = ciphersText.text.orEmpty()
+            debugLogPath = debugLogDirText.text.orEmpty()
+        }
+        super.okPressed()
+    }
 
-	private void setPassword(String password) {
-		passText.setText(password != null ? password : "");
-		setSavePassword(password != null && !password.trim().isEmpty());
-	}
-	
-	private void setIdentityPath(String identityPath) {
-		privKeyText.setText(identityPath != null ? identityPath : "");
-	}
-	
-	private void setPassPhrase(String passPhrase) {
-		passPhraseText.setText(passPhrase != null ? passPhrase : "");
-	}
-	
-	private void setCiphers(String ciphers) {
-		ciphersText.setText(ciphers != null ? ciphers : "");
-		setChooseCiphers(ciphers != null && !ciphers.trim().isEmpty());
-	}
-	
-	private void setDebugLogDir(String dirPath) {
-		debugLogDirText.setText(dirPath != null ? dirPath : "");
-	}
+    private fun setSavePassword(savePassword: Boolean) {
+        savePassCheckbox.selection = savePassword
+        passText.isEnabled = savePassword
+        passText.editable = savePassword
+        if (!savePassword) {
+            passText.text = ""
+        }
+    }
 
+    private fun setChooseCiphers(isChosen: Boolean) {
+        chooseCiphersCheckbox.selection = isChosen
+        ciphersText.isEnabled = isChosen
+        ciphersText.editable = isChosen
+        if (!isChosen) {
+            ciphersText.text = ""
+        }
+    }
+
+    companion object {
+        private val PRIVATE_KEY_NAMES = arrayOf("All Files")
+        private val PRIVATE_KEY_EXT = arrayOf("*")
+    }
 }
