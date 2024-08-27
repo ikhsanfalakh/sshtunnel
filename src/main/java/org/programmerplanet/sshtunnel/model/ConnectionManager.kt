@@ -247,8 +247,8 @@ class ConnectionManager {
             }
         }
 
-        fun isConnected(session: Session): Boolean {
-            val jschSession = connections[session]
+        fun isConnected(session: Session?): Boolean {
+            val jschSession: com.jcraft.jsch.Session? = connections[session]
             return jschSession != null && jschSession.isConnected
         }
 

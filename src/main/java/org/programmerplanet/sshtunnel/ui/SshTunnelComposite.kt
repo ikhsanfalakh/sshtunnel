@@ -61,7 +61,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
     private var sessionsComposite: SessionsComposite
     private var tunnelsComposite: TunnelsComposite? = null
 
-    private lateinit var currentSession: Session
+    private var currentSession: Session? = null
 
     init {
         try {
