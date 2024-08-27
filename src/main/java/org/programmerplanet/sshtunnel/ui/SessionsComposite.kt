@@ -25,7 +25,6 @@ import org.eclipse.swt.widgets.*
 import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
 import org.programmerplanet.sshtunnel.model.Session
 import java.io.IOException
-import java.util.*
 
 /**
  *

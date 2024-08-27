@@ -1,68 +1,51 @@
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.programmerplanet.sshtunnel.model.Session;
+import org.apache.commons.logging.LogFactory
+import org.programmerplanet.sshtunnel.model.Session
 
 /**
- * 
- * @author <a href="agungm@outlook.com">Mulya Agung</a>
+ *
+ * @author [Mulya Agung](agungm@outlook.com)
  */
+object SessionConnectionMonitorFactory {
+    private const val DEF_MONITOR_INTERVAL = 10000
+    private val log = LogFactory.getLog(SessionConnectionMonitorFactory::class.java)
 
-public class SessionConnectionMonitorFactory {
+    private val lock = Any()
+    private var thread: Thread? = null
+    private val sessionConnectionMonitor = SessionConnectionMonitor(DEF_MONITOR_INTERVAL)
 
-	private static final Log log = LogFactory.getLog(SessionConnectionMonitorFactory.class);
+    fun startMonitor() {
+        synchronized(lock) {
+            if (thread == null) {
+                thread = Thread(sessionConnectionMonitor).apply {
+                    start()
+                }
+            }
+        }
+    }
 
-	private static final int DEF_MONITOR_INTERVAL = 10000;
-	private static final SessionConnectionMonitorFactory INSTANCE = new SessionConnectionMonitorFactory();
+    fun stopMonitor() {
+        synchronized(lock) {
+            thread?.let {
+                sessionConnectionMonitor.setThreadStopped(true)
+                thread = null
+                if (log.isWarnEnabled) {
+                    log.warn("Connection monitor is stopped.")
+                }
+            }
+        }
+    }
 
-	private final Object lock = new Object();
-	private Thread thread;
-	private final SessionConnectionMonitor sessionConnectionMonitor;
+    fun addSession(name: String?, session: Session?) {
+        sessionConnectionMonitor.addSession(name, session)
+    }
 
-	public SessionConnectionMonitorFactory() {
-		this(DEF_MONITOR_INTERVAL);
-	}
+    fun removeSession(name: String?) {
+        sessionConnectionMonitor.removeSession(name)
+    }
 
-	public SessionConnectionMonitorFactory(int monitorInterval) {
-		this.sessionConnectionMonitor = new SessionConnectionMonitor(monitorInterval);
-	}
-
-	public void startMonitor() {
-		synchronized (lock) {
-			if (thread == null) {
-				thread = new Thread(this.sessionConnectionMonitor);
-				thread.start();
-			}
-		}
-	}
-
-	public void stopMonitor() {
-		synchronized (lock) {
-			if (thread != null) {
-				this.sessionConnectionMonitor.setThreadStopped(true);
-				thread = null;
-				
-				if (log.isWarnEnabled()) {
-					log.warn("Connection monitor is stopped.");
-				}
-			}
-		}
-	}
-
-	public void addSession(String name, Session session) {
-		this.sessionConnectionMonitor.addSession(name, session);
-	}
-
-	public void removeSession(String name) {
-		this.sessionConnectionMonitor.removeSession(name);
-	}
-
-	public void setSshTunnelComposite(SshTunnelComposite sshTunnelComposite) {
-		this.sessionConnectionMonitor.setSshTunnelComposite(sshTunnelComposite);
-	}
-
-	public static SessionConnectionMonitorFactory getInstance() {
-		return INSTANCE;
-	}
+    fun setSshTunnelComposite(sshTunnelComposite: SshTunnelComposite?) {
+        sessionConnectionMonitor.setSshTunnelComposite(sshTunnelComposite)
+    }
 }

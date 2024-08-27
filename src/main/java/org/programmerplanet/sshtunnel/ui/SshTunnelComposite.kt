@@ -138,8 +138,8 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
         shell.setBounds(configuration.left, configuration.top, configuration.width, configuration.height)
         sashForm.weights = configuration.weights
         // Run connection monitor
-        SessionConnectionMonitorFactory.getInstance().setSshTunnelComposite(this)
-        SessionConnectionMonitorFactory.getInstance().startMonitor()
+        SessionConnectionMonitorFactory.setSshTunnelComposite(this)
+        SessionConnectionMonitorFactory.startMonitor()
     }
 
     private fun save() {
@@ -325,7 +325,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
                 try {
                     connect(session, shell)
                     // Put to monitored list
-                    SessionConnectionMonitorFactory.getInstance().addSession(session.sessionName, session)
+                    SessionConnectionMonitorFactory.addSession(session.sessionName, session)
                 } catch (ce: ConnectionException) {
                     try {
                         ConnectionManager.disconnect(session)
@@ -373,7 +373,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
         save()
         if (session != null && isConnected(session)) {
             ConnectionManager.disconnect(session)
-            SessionConnectionMonitorFactory.getInstance().removeSession(session.sessionName)
+            SessionConnectionMonitorFactory.removeSession(session.sessionName)
         }
         connectionStatusChanged()
     }
@@ -490,7 +490,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
 
     private fun exit() {
         disconnectAll()
-        SessionConnectionMonitorFactory.getInstance().stopMonitor()
+        SessionConnectionMonitorFactory.stopMonitor()
         save()
         val tray = display.systemTray
         for (trayItem in tray.items) {
