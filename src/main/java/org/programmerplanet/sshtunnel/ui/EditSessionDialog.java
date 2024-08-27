@@ -194,7 +194,7 @@ public class EditSessionDialog extends CustomDialog {
 		setPassword(session.password);
 		setIdentityPath(session.identityPath);
 		setPassPhrase(session.passPhrase);
-		setCompression(session.isCompressed());
+		setCompression(session.isCompressed);
 		setCiphers(session.ciphers);
 		setDebugLogDir(session.debugLogPath);
 	}
@@ -207,9 +207,8 @@ public class EditSessionDialog extends CustomDialog {
 		session.password = getPassword();
 		session.identityPath = getIdentityPath();
 		session.passPhrase = getPassPhrase();
-		session.setCompressed(getCompression());
+		session.isCompressed = getCompression();
 		session.ciphers = getCiphers();
-		session.setCompressed(getCompression());
 		session.debugLogPath = getDebugLogDir();
 		super.okPressed();
 	}

@@ -25,38 +25,14 @@ import org.eclipse.swt.widgets.Shell
  *
  * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-class DefaultUserInfo @JvmOverloads constructor(private val parent: Shell, password: String? = null) :
+class DefaultUserInfo @JvmOverloads constructor(
+    private val parent: Shell,
+    private var password: String? = null
+) :
     UserInfo {
-    private var password: String?
-    private val savedPassword: Boolean
-    private var attempt = 0
-
-    init {
-        this.password = password
-        this.savedPassword = true
-    }
 
     override fun promptPassword(message: String): Boolean {
-        attempt++
-        if (attempt > MAX_ATTEMPTS) {
-            return false
-        } else if (savedPassword && attempt == 1) {
-            return true
-        } else {
-            val promptDialog: PromptRunnable = object : PromptRunnable() {
-                override fun run() {
-                    val dialog = PasswordDialog(parent)
-                    dialog.message = message
-                    val result: Int = dialog.open()
-                    if (result == SWT.OK) {
-                        password = dialog.password
-                        returnState = true
-                    }
-                }
-            }
-            Display.getDefault().syncExec(promptDialog)
-            return promptDialog.returnState
-        }
+        return true
     }
 
     override fun getPassword(): String? {

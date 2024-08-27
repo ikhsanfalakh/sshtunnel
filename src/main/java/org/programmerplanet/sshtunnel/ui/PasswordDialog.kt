@@ -13,63 +13,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Text;
+import org.eclipse.swt.SWT
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.layout.GridLayout
+import org.eclipse.swt.widgets.Composite
+import org.eclipse.swt.widgets.Label
+import org.eclipse.swt.widgets.Shell
+import org.eclipse.swt.widgets.Text
 
 /**
- * 
- * @author <a href="jfifield@programmerplanet.org">Joseph Fifield</a>
+ *
+ * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-public class PasswordDialog extends CustomDialog {
+class PasswordDialog(parent: Shell) : CustomDialog(parent) {
+    var message: String? = null
+    private var passText: Text? = null
+    var password: String? = null
+        private set
 
-	private String message;
-	private Text passText;
-	private String password;
+    init {
+        this.text = "Password"
+    }
 
-	public PasswordDialog(Shell parent) {
-		super(parent);
-		this.setText("Password");
-	}
+    override fun initialize(parent: Composite) {
+        val layout = GridLayout()
+        parent.layout = layout
 
-	public void setMessage(String message) {
-		this.message = message;
-	}
+        if (message != null) {
+            val messageLabel = Label(parent, SWT.LEFT)
+            val gridData = GridData(GridData.BEGINNING, GridData.CENTER, false, false)
+            messageLabel.layoutData = gridData
+            messageLabel.text = "$message:"
+        }
 
-	public String getMessage() {
-		return message;
-	}
+        passText = Text(parent, SWT.SINGLE or SWT.BORDER or SWT.PASSWORD)
+        val gridData4 = GridData(GridData.FILL, GridData.CENTER, true, false)
+        gridData4.widthHint = 200
+        passText!!.layoutData = gridData4
+    }
 
-	protected void initialize(Composite parent) {
-		GridLayout layout = new GridLayout();
-		parent.setLayout(layout);
-
-		if (message != null) {
-			Label messageLabel = new Label(parent, SWT.LEFT);
-			GridData gridData = new GridData(GridData.BEGINNING, GridData.CENTER, false, false);
-			messageLabel.setLayoutData(gridData);
-			messageLabel.setText(message + ":");
-		}
-
-		passText = new Text(parent, SWT.SINGLE | SWT.BORDER | SWT.PASSWORD);
-		GridData gridData4 = new GridData(GridData.FILL, GridData.CENTER, true, false);
-		gridData4.widthHint = 200;
-		passText.setLayoutData(gridData4);
-	}
-
-	protected void okPressed() {
-		password = passText.getText();
-		super.okPressed();
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
+    override fun okPressed() {
+        password = passText!!.text
+        super.okPressed()
+    }
 }

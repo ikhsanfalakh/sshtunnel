@@ -1,85 +1,86 @@
-package org.programmerplanet.sshtunnel.ui;
+package org.programmerplanet.sshtunnel.ui
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.eclipse.swt.widgets.Display;
-import org.programmerplanet.sshtunnel.model.ConnectionManager;
-import org.programmerplanet.sshtunnel.model.Session;
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
+import org.eclipse.swt.widgets.Display
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.disconnect
+import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
+import org.programmerplanet.sshtunnel.model.Session
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * 
- * @author <a href="agungm@outlook.com">Mulya Agung</a>
+ *
+ * @author [Mulya Agung](agungm@outlook.com)
  */
+class SessionConnectionMonitor(monitorInterval: Int) : Runnable {
+    private var threadStopped: Boolean
+    private val monitorInterval: Int
+    private val sessions: MutableMap<String, Session> =
+        ConcurrentHashMap()
+    private var sshTunnelComposite: SshTunnelComposite? = null
 
-public class SessionConnectionMonitor implements Runnable {
+    init {
+        threadStopped = false
+        this.monitorInterval = monitorInterval
+    }
 
-	private static final Log log = LogFactory.getLog(SessionConnectionMonitor.class);
+    fun setThreadStopped(threadStopped: Boolean) {
+        this.threadStopped = threadStopped
+    }
 
-	private Boolean threadStopped;
-	private final int monitorInterval;
-	private final Map<String, Session> sessions;
-	private SshTunnelComposite sshTunnelComposite;
+    override fun run() {
+        this.threadStopped = false
+        if (log.isWarnEnabled) {
+            log.warn("Connection monitor is now running..")
+        }
+        while (!threadStopped) {
+            var anyRemoved = false
+            val it: MutableIterator<Map.Entry<String, Session>> = sessions.entries.iterator()
+            while (it.hasNext()) {
+                val entry: Map.Entry<String, Session> = it.next()
+                if (!isConnected(entry.value)) {
+                    disconnect(entry.value)
+                    if (log.isWarnEnabled) {
+                        log.warn("Session " + entry.key + " has disconnected.")
+                    }
+                    if (sshTunnelComposite != null) {
+                        val s = entry.value
+                        Display.getDefault().asyncExec {
+                            sshTunnelComposite!!.showDisconnectedMessage(
+                                s
+                            )
+                        }
+                    }
+                    it.remove()
+                    if (!anyRemoved) anyRemoved = true
+                }
+            }
+            if (sshTunnelComposite != null && anyRemoved) {
+                Display.getDefault().asyncExec { sshTunnelComposite!!.connectionStatusChanged() }
+            }
+            try {
+                Thread.sleep(monitorInterval.toLong())
+            } catch (e: InterruptedException) {
+                log.error(e)
+            }
+        }
+    }
 
-	public SessionConnectionMonitor(int monitorInterval) {
-		sessions = new ConcurrentHashMap<>();
-		threadStopped = false;
-		this.monitorInterval = monitorInterval;
-	}
+    fun addSession(name: String, session: Session) {
+        sessions[name] = session
+    }
 
-	public void setThreadStopped(Boolean threadStopped) {
-		this.threadStopped = threadStopped;
-	}
+    fun removeSession(name: String) {
+        sessions.remove(name)
+    }
 
-	public void run() {
-		this.threadStopped = false;
-		if (log.isWarnEnabled()) {
-			log.warn("Connection monitor is now running..");
-		}
-		while (!threadStopped) {
-			boolean anyRemoved = false;
-			Iterator<Entry<String, Session>> it = sessions.entrySet().iterator();
-			while (it.hasNext()) {
-				Entry<String, Session> entry = it.next();
-				if (!ConnectionManager.Companion.isConnected(entry.getValue())) {
-					ConnectionManager.Companion.disconnect(entry.getValue());
-					if (log.isWarnEnabled()) {
-						log.warn("Session " + entry.getKey() + " has disconnected.");
-					}
-					if (sshTunnelComposite != null) {
-						final Session s = entry.getValue();
-						Display.getDefault().asyncExec(() -> sshTunnelComposite.showDisconnectedMessage(s));
-				}
-				it.remove();
-				if (!anyRemoved)
-					anyRemoved = true;
-				}
-			}
-			if (sshTunnelComposite != null && anyRemoved) {
-				Display.getDefault().asyncExec(() -> sshTunnelComposite.connectionStatusChanged());
-			}
-			try {
-				Thread.sleep(monitorInterval);
-			} catch (InterruptedException e) {
-				log.error(e);
-			}
-		}
-	}
+    fun setSshTunnelComposite(sshTunnelComposite: SshTunnelComposite?) {
+        this.sshTunnelComposite = sshTunnelComposite
+    }
 
-	public void addSession(String name, Session session) {
-		sessions.put(name, session);
-	}
-
-	public void removeSession(String name) {
-		sessions.remove(name);
-	}
-
-	public void setSshTunnelComposite(SshTunnelComposite sshTunnelComposite) {
-		this.sshTunnelComposite = sshTunnelComposite;
-	}
-
+    companion object {
+        private val log: Log = LogFactory.getLog(
+            SessionConnectionMonitor::class.java
+        )
+    }
 }

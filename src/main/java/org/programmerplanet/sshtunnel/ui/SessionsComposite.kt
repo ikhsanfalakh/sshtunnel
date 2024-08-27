@@ -205,7 +205,7 @@ class SessionsComposite(
     }
 
     private fun addSession() {
-        val session = Session()
+        val session = Session("")
         val dialog = EditSessionDialog(this.shell, session)
         val result = dialog.open()
         if (result == SWT.OK) {

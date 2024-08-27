@@ -143,10 +143,10 @@ class Configuration {
                 }
 
 
-                val session = Session()
+                val session = Session(sessionName)
                 session.sessionName = sessionName
                 session.hostname = hostname
-                if (port != null && !port.isEmpty()) {
+                if (port != null && port.isNotEmpty()) {
                     session.port = port.toInt()
                 }
                 session.username = username

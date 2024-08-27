@@ -37,15 +37,15 @@ object SessionConnectionMonitorFactory {
         }
     }
 
-    fun addSession(name: String?, session: Session?) {
+    fun addSession(name: String, session: Session) {
         sessionConnectionMonitor.addSession(name, session)
     }
 
-    fun removeSession(name: String?) {
+    fun removeSession(name: String) {
         sessionConnectionMonitor.removeSession(name)
     }
 
-    fun setSshTunnelComposite(sshTunnelComposite: SshTunnelComposite?) {
+    fun setSshTunnelComposite(sshTunnelComposite: SshTunnelComposite) {
         sessionConnectionMonitor.setSshTunnelComposite(sshTunnelComposite)
     }
 }
