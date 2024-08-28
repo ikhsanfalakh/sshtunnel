@@ -11,40 +11,28 @@ import javax.crypto.spec.DESKeySpec
 
 private const val ALGORITHM = "DES"
 
-fun encrypt(source: String, keyString: String): String? {
-    return try {
-        val key = getKey(keyString)
-        val cipher = Cipher.getInstance(ALGORITHM)
-        cipher.init(Cipher.ENCRYPT_MODE, key)
-        val clearBytes: ByteArray = source.toByteArray()
-        val cipherBytes = cipher.doFinal(clearBytes)
-        byteArrayToHexString(cipherBytes)
-    } catch (e: Exception) {
-        null
-    }
+fun encrypt(source: String, keyString: String): String {
+    val key = getKey(keyString)
+    val cipher = Cipher.getInstance(ALGORITHM)
+    cipher.init(Cipher.ENCRYPT_MODE, key)
+    val clearBytes: ByteArray = source.toByteArray()
+    val cipherBytes = cipher.doFinal(clearBytes)
+    return byteArrayToHexString(cipherBytes)
 }
 
-fun decrypt(source: String, keyString: String): String? {
-    return try {
-        val key = getKey(keyString)
-        val cipher = Cipher.getInstance(ALGORITHM)
-        cipher.init(Cipher.DECRYPT_MODE, key)
-        val cipherBytes = hexStringToByteArray(source)
-        val clearBytes = cipher.doFinal(cipherBytes)
-        String(clearBytes)
-    } catch (e: Exception) {
-        null
-    }
+fun decrypt(source: String, keyString: String): String {
+    val key = getKey(keyString)
+    val cipher = Cipher.getInstance(ALGORITHM)
+    cipher.init(Cipher.DECRYPT_MODE, key)
+    val cipherBytes = hexStringToByteArray(source)
+    val clearBytes = cipher.doFinal(cipherBytes)
+    return String(clearBytes)
 }
 
-fun createKeyString(): String? {
-    return try {
-        val key = createKey()
-        val bytes = key.encoded
-        byteArrayToHexString(bytes)
-    } catch (e: Exception) {
-        null
-    }
+fun createKeyString(): String {
+    val key = createKey()
+    val bytes = key.encoded
+    return byteArrayToHexString(bytes)
 }
 
 @Throws(GeneralSecurityException::class)

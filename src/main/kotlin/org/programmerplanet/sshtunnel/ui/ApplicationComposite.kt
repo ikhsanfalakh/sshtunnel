@@ -141,7 +141,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
                 updateConnectButtons()
             }
         }
-        sessionsComposite = SessionsComposite(sashForm, SWT.NONE, configuration.getSessions(), sessionChangeListener)
+        sessionsComposite = SessionsComposite(sashForm, SWT.NONE, configuration.sessions, sessionChangeListener)
         tunnelsComposite = TunnelsComposite(sashForm, shell, SWT.NONE, tunnelChangeListener)
 
         createButtonBarComposite()
@@ -308,7 +308,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
 
     private fun anyDisconnectedSessions(): Boolean {
         var result = false
-        for (session in configuration.getSessions()) {
+        for (session in configuration.sessions) {
             if (!ConnectionManager.isConnected(session)) {
                 result = true
                 break
@@ -319,7 +319,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
 
     private fun anyConnectedSessions(): Boolean {
         var result = false
-        for (session in configuration.getSessions()) {
+        for (session in configuration.sessions) {
             if (ConnectionManager.isConnected(session)) {
                 result = true
                 break
@@ -397,14 +397,14 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         Thread {
             var sessionToConnect: Session? = null
             try {
-                for (session: Session in configuration.getSessions()) {
+                for (session: Session in configuration.sessions) {
                     sessionToConnect = session
                     if (!ConnectionManager.isConnected(sessionToConnect)) {
                         ConnectionManager.connect(sessionToConnect, shell)
                     }
                 }
             } catch (ce: ConnectionException) {
-                for (session: Session in configuration.getSessions()) {
+                for (session: Session in configuration.sessions) {
                     try {
                         ConnectionManager.disconnect(session)
                     } catch (ignored: Exception) {
@@ -425,7 +425,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
 
     private fun disconnectAll() {
         save()
-        for (session in configuration.getSessions()) {
+        for (session in configuration.sessions) {
             if (ConnectionManager.isConnected(session)) {
                 ConnectionManager.disconnect(session)
             }
@@ -478,7 +478,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
                     }
                 }
 
-            for (session in configuration.getSessions()) {
+            for (session in configuration.sessions) {
                 val menuItem = MenuItem(m, SWT.NONE)
                 menuItem.data = session
                 val text = session.sessionName
@@ -491,7 +491,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
                 menuItem.addListener(SWT.Selection, menuItemListener)
             }
 
-            if (configuration.getSessions().isNotEmpty()) {
+            if (configuration.sessions.isNotEmpty()) {
                 MenuItem(m, SWT.SEPARATOR)
             }
 

@@ -3,8 +3,8 @@ package org.agung.sshtunnel.addon
 import org.programmerplanet.sshtunnel.model.Tunnel
 import java.io.*
 import java.util.*
-import java.util.stream.Collectors
-import java.util.stream.Stream
+
+const val COMMA_DELIMITER: String = ","
 
 /**
  *
@@ -18,7 +18,6 @@ class CsvConfigImporter {
     @Throws(IOException::class)
     fun readCsv(csvPath: String): MutableSet<Tunnel> {
         val importedTunnels: HashSet<Tunnel> = HashSet()
-
         val br = BufferedReader(FileReader(csvPath))
         // Get header
         var line: String = br.readLine()
@@ -41,11 +40,8 @@ class CsvConfigImporter {
         return importedTunnels
     }
 
-    private fun convertToCSV(data: Array<String?>): String {
-        return Stream.of(*data)
-            .map { values: String? -> values?.let{this.escapeSpecialCharacters(values)} }
-            .collect(Collectors.joining(","))
-    }
+    private fun convertToCSV(data: Array<String?>): String =
+        data.joinToString(",") { it?.let { escapeSpecialCharacters(it) } ?: "" }
 
     private fun escapeSpecialCharacters(data: String): String {
         var escapedData = data.replace("\\R".toRegex(), " ")
@@ -62,23 +58,15 @@ class CsvConfigImporter {
         // Add header
         dataLines.add(tunnelConfHeaders.toTypedArray<String?>())
 
-        for (tunnel in tunnels) {
-            val line = arrayOfNulls<String>(tunnelConfHeaders.size)
-            line[0] = tunnel.localAddress
-            line[1] = tunnel.localPort.toString()
-            line[2] = tunnel.remoteAddress
-            line[3] = tunnel.remotePort.toString()
-            if (tunnel.local) line[4] = "local"
-            else line[4] = "remote"
-            dataLines.add(line)
+        tunnels.forEach { tunnel ->
+            dataLines.add(arrayOf(
+                tunnel.localAddress,
+                tunnel.localPort.toString(),
+                tunnel.remoteAddress,
+                tunnel.remotePort.toString(),
+                if (tunnel.local) "local" else "remote"
+            ))
         }
-        PrintWriter(csvPath).use { pw ->
-            dataLines.stream().map { data: Array<String?> -> this.convertToCSV(data) }
-                .forEach { x: String? -> pw.println(x) }
-        }
-    }
-
-    companion object {
-        const val COMMA_DELIMITER: String = ","
+        PrintWriter(csvPath).use { pw -> dataLines.forEach { pw.println(convertToCSV(it)) } }
     }
 }

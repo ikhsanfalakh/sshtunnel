@@ -15,28 +15,21 @@
  */
 package org.programmerplanet.sshtunnel.model
 
-import java.util.*
-
 /**
  * Represents a tunnel (port forward) over an ssh connection.
  *
  * @author [Joseph Fifield](jfifield@programmerplanet.org)
  * @author [Mulya Agung](agungm@outlook.com)
  */
-class Tunnel : Comparable<Tunnel> {
-    @JvmField
-	var localAddress: String? = null
-    @JvmField
-	var localPort: Int = 0
-    @JvmField
-	var remoteAddress: String? = null
-    @JvmField
-	var remotePort: Int = 0
-    @JvmField
-	var local: Boolean = true
+data class Tunnel(
+    var localAddress: String? = null,
+    var localPort: Int = 0,
+    var remoteAddress: String? = null,
+    var remotePort: Int = 0,
+    var local: Boolean = true
+) : Comparable<Tunnel> {
 
-    @JvmField
-	@Transient
+    @Transient
     var exception: Exception? = null
 
     override fun toString(): String {
@@ -47,32 +40,10 @@ class Tunnel : Comparable<Tunnel> {
     }
 
     override fun compareTo(other: Tunnel): Int {
-        var i = localAddress!!.compareTo(other.localAddress!!)
-        if (i == 0) {
-            i = localPort.compareTo(other.localPort)
-        }
-        return i
+        return compareValuesBy(this, other,
+            { it.localAddress ?: "" },
+            { it.localPort }
+        )
     }
 
-    fun copy(): Tunnel {
-        val copyTunnel = Tunnel()
-        copyTunnel.local = local
-        copyTunnel.localAddress = localAddress
-        copyTunnel.localPort = localPort
-        copyTunnel.remoteAddress = remoteAddress
-        copyTunnel.remotePort = remotePort
-        return copyTunnel
-    }
-
-    override fun hashCode(): Int {
-        return Objects.hash(localAddress, localPort)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null) return false
-        if (javaClass != other.javaClass) return false
-        val other0: Tunnel = other as Tunnel
-        return localAddress == other0.localAddress && localPort == other0.localPort
-    }
 }

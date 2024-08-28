@@ -35,11 +35,7 @@ class Configuration {
     var width: Int = 500
     var height: Int = 400
     var weights: IntArray = intArrayOf(5, 7)
-    private val sessions: MutableList<Session> = ArrayList()
-
-    fun getSessions(): MutableList<Session> {
-        return sessions
-    }
+    val sessions: MutableList<Session> = ArrayList()
 
     @Throws(IOException::class)
     fun write() {
@@ -61,45 +57,36 @@ class Configuration {
             properties.setProperty("$sessionKey.hostname", session.hostname)
             properties.setProperty("$sessionKey.port", session.port.toString())
             properties.setProperty("$sessionKey.username", session.username)
-            if (session.password != null) {
+            session.password?.let { password ->
                 val keyString = createKeyString()
-                val encryptedPassword = encrypt(session.password!!, keyString!!)
+                val encryptedPassword = encrypt(password, keyString)
                 properties.setProperty("$sessionKey.key", keyString)
                 properties.setProperty("$sessionKey.password", encryptedPassword)
             }
 
-            if (session.identityPath != null) {
-                properties.setProperty("$sessionKey.identityPath", session.identityPath)
+            session.identityPath?.let { path ->
+                properties.setProperty("$sessionKey.identityPath", path)
             }
 
-            if (session.passPhrase != null) {
+            session.passPhrase?.let { passPhrase ->
                 val keyString = createKeyString()
-                val encryptedPassphrase = encrypt(session.passPhrase!!, keyString!!)
+                val encryptedPassphrase = encrypt(passPhrase, keyString)
                 properties.setProperty("$sessionKey.passphraseKey", keyString)
                 properties.setProperty("$sessionKey.passphrase", encryptedPassphrase)
             }
-
-            if (session.ciphers != null) {
-                properties.setProperty("$sessionKey.ciphers", session.ciphers)
-            }
-
-            if (session.debugLogPath != null) {
-                properties.setProperty("$sessionKey.debugLogPath", session.debugLogPath)
-            }
+            session.ciphers?.let {ciphers -> properties.setProperty("$sessionKey.ciphers", ciphers)}
+            session.debugLogPath?.let {path -> properties.setProperty("$sessionKey.debugLogPath", path)}
 
             properties.setProperty("$sessionKey.compression", session.isCompressed.toString())
-
-            val ti: ListIterator<Tunnel> = session.tunnels.listIterator()
-            while (ti.hasNext()) {
-                val tunnel = ti.next()
-
-                val tunnelKey = sessionKey + ".tunnels[" + ti.previousIndex() + "]"
-
-                properties.setProperty("$tunnelKey.localAddress", tunnel.localAddress)
-                properties.setProperty("$tunnelKey.localPort", tunnel.localPort.toString())
-                properties.setProperty("$tunnelKey.remoteAddress", tunnel.remoteAddress)
-                properties.setProperty("$tunnelKey.remotePort", tunnel.remotePort.toString())
-                properties.setProperty("$tunnelKey.local", tunnel.local.toString())
+            session.tunnels.forEachIndexed { index, tunnel ->
+                val tunnelKey = "$sessionKey.tunnels[$index]"
+                properties.apply {
+                    setProperty("$tunnelKey.localAddress", tunnel.localAddress)
+                    setProperty("$tunnelKey.localPort", tunnel.localPort.toString())
+                    setProperty("$tunnelKey.remoteAddress", tunnel.remoteAddress)
+                    setProperty("$tunnelKey.remotePort", tunnel.remotePort.toString())
+                    setProperty("$tunnelKey.local", tunnel.local.toString())
+                }
             }
         }
 
@@ -110,11 +97,11 @@ class Configuration {
     fun read() {
         val properties = loadProperties()
 
-        this.top = properties.getProperty("top", top.toString()).toInt()
-        this.left = properties.getProperty("left", left.toString()).toInt()
-        this.width = properties.getProperty("width", width.toString()).toInt()
-        this.height = properties.getProperty("height", height.toString()).toInt()
-        this.weights = stringToIntArray(properties.getProperty("weights", intArrayToString(this.weights)))
+        top = properties.getProperty("top", top.toString()).toInt()
+        left = properties.getProperty("left", left.toString()).toInt()
+        width = properties.getProperty("width", width.toString()).toInt()
+        height = properties.getProperty("height", height.toString()).toInt()
+        weights = stringToIntArray(properties.getProperty("weights", intArrayToString(this.weights)))
 
         var sessionIndex = 0
         var moreSessions = true

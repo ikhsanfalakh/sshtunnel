@@ -102,9 +102,12 @@ class ConnectionManager {
         fun connect(session: Session, parent: Shell) {
             logger.info {"Connecting session: $session"}
             clearTunnelExceptions(session)
-            var jschSession: com.jcraft.jsch.Session? = connections[session]
+            val lookedUpSession: com.jcraft.jsch.Session? = connections[session]
+            val jschSession: com.jcraft.jsch.Session
             try {
-                if (jschSession == null) {
+                if (lookedUpSession != null) {
+                    jschSession = lookedUpSession
+                } else {
                     val jsch = JSch()
                     val knownHosts = knownHostsFile
                     jsch.setKnownHosts(knownHosts.absolutePath)
@@ -140,7 +143,7 @@ class ConnectionManager {
                         DefaultUserInfo(parent)
                     }
 
-                jschSession!!.userInfo = userInfo
+                jschSession.userInfo = userInfo
                 jschSession.serverAliveInterval = KEEP_ALIVE_INTERVAL
                 jschSession.serverAliveCountMax = 2
 
@@ -160,10 +163,10 @@ class ConnectionManager {
 
                 startTunnels(session, jschSession)
             } catch (e: JSchException) {
-                Objects.requireNonNull(jschSession)?.disconnect()
+                lookedUpSession?.disconnect()
                 throw ConnectionException(e)
             } catch (e: IOException) {
-                Objects.requireNonNull(jschSession)?.disconnect()
+                lookedUpSession?.disconnect()
                 throw ConnectionException(e)
             }
             connections[session] = jschSession
