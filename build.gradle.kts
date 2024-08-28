@@ -20,20 +20,15 @@ repositories {
 
 dependencies {
     api(libs.com.github.mwiede.jsch)
-    api(libs.commons.logging.commons.logging)
     api(libs.org.eclipse.swt.org.eclipse.swt.gtk.linux.x86.v64)
     implementation(kotlin("stdlib-jdk8"))
+    implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
+    runtimeOnly("ch.qos.logback:logback-classic:1.4.12")
 }
 
 group = "org.programmerplanet"
 version = "0.7"
-description = "sshtunel-ng"
-
-publishing {
-    publications.create<MavenPublication>("maven") {
-        from(components["java"])
-    }
-}
+description = "ssh-tunel-manager"
 
 tasks.withType<JavaCompile>() {
     options.encoding = "UTF-8"

@@ -22,9 +22,8 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.GridData
 import org.eclipse.swt.layout.GridLayout
 import org.eclipse.swt.widgets.*
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
+import org.programmerplanet.sshtunnel.model.ConnectionManager
 import org.programmerplanet.sshtunnel.model.Session
-import java.io.IOException
 
 /**
  *
@@ -38,74 +37,51 @@ class SessionsComposite(
 ) :
     Composite(parent, style) {
     private var sessionTable: Table
+    private var addSessionButton: Button
     private var editSessionButton: Button
     private var removeSessionButton: Button
 
-    private var connectedImage: Image
-    private var disconnectedImage: Image
-    private var addImage: Image
-    private var editImage: Image
-    private var deleteImage: Image
-
     init {
-        connectedImage = loadImage(CONNECTED_IMAGE_PATH)
-        disconnectedImage = loadImage(DISCONNECTED_IMAGE_PATH)
-        addImage = loadImage(ADD_IMAGE_PATH)
-        editImage = loadImage(EDIT_IMAGE_PATH)
-        deleteImage = loadImage(DELETE_IMAGE_PATH)
         layout = FillLayout()
-        val group = Group(this, SWT.NULL)
-        group.text = "Sessions"
-        group.layout = GridLayout()
+        val group = Group(this, SWT.NULL).apply {
+            text = "Sessions"
+            layout = GridLayout()
+        }
 
-        val buttonBarComposite = Composite(group, SWT.NONE)
-        buttonBarComposite.layout = FillLayout()
+        val buttonBarComposite = Composite(group, SWT.NONE).apply {
+            layout = FillLayout()
+            layoutData = GridData().apply { horizontalAlignment = GridData.END }
+        }
+        addSessionButton = Button(buttonBarComposite, SWT.PUSH)
+        editSessionButton = Button(buttonBarComposite, SWT.PUSH).apply { isEnabled = false }
+        removeSessionButton = Button(buttonBarComposite, SWT.PUSH).apply { isEnabled = false }
 
-        val gridData = GridData()
-        gridData.horizontalAlignment = GridData.END
-        buttonBarComposite.layoutData = gridData
+        val buttons: List<Triple<Button, String, ImageResource>> = listOf(
+            Triple(addSessionButton, "Add", ImageResource.Add),
+            Triple(editSessionButton, "Edit", ImageResource.Edit),
+            Triple(removeSessionButton, "Remove", ImageResource.Remove)
+        )
 
-        val addSessionButton = Button(buttonBarComposite, SWT.PUSH)
-        addSessionButton.text = "Add"
-        addSessionButton.toolTipText = "Add Session"
-        addSessionButton.image = addImage
+        buttons.forEach { (button, text, image) ->
+            button.apply {
+                this.text = text
+                toolTipText = "$text Session"
+                this.image = image.getImage(display)
+            }
+        }
 
-        editSessionButton = Button(buttonBarComposite, SWT.PUSH)
-        removeSessionButton = Button(buttonBarComposite, SWT.PUSH)
-        createButtonBarComposite(addSessionButton)
+        addSessionButton.onSelect { addSession() }
+        editSessionButton.onSelect { editSession() }
+        removeSessionButton.onSelect { removeSession() }
 
         sessionTable = Table(group, SWT.SINGLE or SWT.BORDER or SWT.FULL_SELECTION)
         createTable()
         updateTable()
     }
 
-    private fun createButtonBarComposite(addSessionButton: Button) {
-        editSessionButton.text = "Edit"
-        editSessionButton.toolTipText = "Edit Session"
-        editSessionButton.image = editImage
-        editSessionButton.isEnabled = false
-
-        removeSessionButton.text = "Remove"
-        removeSessionButton.toolTipText = "Remove Session"
-        removeSessionButton.image = deleteImage
-        removeSessionButton.isEnabled = false
-
-        addSessionButton.addSelectionListener(object : SelectionAdapter() {
-            override fun widgetSelected(e: SelectionEvent) {
-                addSession()
-            }
-        })
-
-        editSessionButton.addSelectionListener(object : SelectionAdapter() {
-            override fun widgetSelected(e: SelectionEvent) {
-                editSession()
-            }
-        })
-
-        removeSessionButton.addSelectionListener(object : SelectionAdapter() {
-            override fun widgetSelected(e: SelectionEvent) {
-                removeSession()
-            }
+    private fun Button.onSelect(action: () -> Unit) {
+        addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) = action()
         })
     }
 
@@ -113,27 +89,18 @@ class SessionsComposite(
         sessionTable.headerVisible = true
         sessionTable.linesVisible = true
 
-        val column1 = TableColumn(sessionTable, SWT.NULL)
-        column1.text = " "
+        TableColumn(sessionTable, SWT.NULL).apply { text = " " }
+        TableColumn(sessionTable, SWT.NULL).apply { text = "Name" }
+        TableColumn(sessionTable, SWT.NULL).apply { text = "Hostname" }
+        TableColumn(sessionTable, SWT.NULL).apply { text = "Port" }
+        TableColumn(sessionTable, SWT.NULL).apply { text = "Username" }
 
-        val column2 = TableColumn(sessionTable, SWT.NULL)
-        column2.text = "Name"
-
-        val column3 = TableColumn(sessionTable, SWT.NULL)
-        column3.text = "Hostname"
-
-        val column4 = TableColumn(sessionTable, SWT.NULL)
-        column4.text = "Port"
-
-        val column5 = TableColumn(sessionTable, SWT.NULL)
-        column5.text = "Username"
-
-        val gridData = GridData()
-        gridData.grabExcessHorizontalSpace = true
-        gridData.horizontalAlignment = GridData.FILL
-        gridData.grabExcessVerticalSpace = true
-        gridData.verticalAlignment = GridData.FILL
-        sessionTable.layoutData = gridData
+        sessionTable.layoutData = GridData().apply {
+            grabExcessHorizontalSpace = true
+            horizontalAlignment = GridData.FILL
+            grabExcessVerticalSpace = true
+            verticalAlignment = GridData.FILL
+        }
 
         sessionTable.addControlListener(object : ControlAdapter() {
             override fun controlResized(e: ControlEvent) {
@@ -173,18 +140,6 @@ class SessionsComposite(
         })
     }
 
-    private fun loadImage(path: String): Image {
-        try {
-            SessionsComposite::class.java.getResourceAsStream(path).use { stream ->
-                return Image(
-                    this.display, stream
-                )
-            }
-        } catch (e: IOException) {
-            throw RuntimeException(e)
-        }
-    }
-
     fun updateTable() {
         sessionTable.removeAll()
         sessions.sort()
@@ -199,7 +154,10 @@ class SessionsComposite(
                     session.username
                 )
             )
-            val image = if (isConnected(session)) connectedImage else disconnectedImage
+            val image: Image =
+                if (ConnectionManager.isConnected(session)) ImageResource.Connected.getImage(display) else ImageResource.Disconnected.getImage(
+                    display
+                )
             tableItem.setImage(0, image)
         }
     }
@@ -237,27 +195,4 @@ class SessionsComposite(
         }
     }
 
-    private fun disposeImages() {
-        connectedImage.dispose()
-        disconnectedImage.dispose()
-        addImage.dispose()
-        editImage.dispose()
-        deleteImage.dispose()
-    }
-
-    /**
-     * @see org.eclipse.swt.widgets.Widget.dispose
-     */
-    override fun dispose() {
-        disposeImages()
-        super.dispose()
-    }
-
-    companion object {
-        private const val CONNECTED_IMAGE_PATH = "/images/bullet_green.png"
-        private const val DISCONNECTED_IMAGE_PATH = "/images/bullet_red.png"
-        private const val ADD_IMAGE_PATH = "/images/add.png"
-        private const val EDIT_IMAGE_PATH = "/images/edit.png"
-        private const val DELETE_IMAGE_PATH = "/images/delete.png"
-    }
 }

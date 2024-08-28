@@ -1,12 +1,12 @@
 package org.programmerplanet.sshtunnel.ui
 
-import org.apache.commons.logging.Log
-import org.apache.commons.logging.LogFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.eclipse.swt.widgets.Display
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.disconnect
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
+import org.programmerplanet.sshtunnel.model.ConnectionManager
 import org.programmerplanet.sshtunnel.model.Session
 import java.util.concurrent.ConcurrentHashMap
+
+private val logger = KotlinLogging.logger {}
 
 /**
  *
@@ -17,7 +17,7 @@ class SessionConnectionMonitor(monitorInterval: Int) : Runnable {
     private val monitorInterval: Int
     private val sessions: MutableMap<String, Session> =
         ConcurrentHashMap()
-    private var sshTunnelComposite: SshTunnelComposite? = null
+    private var applicationComposite: ApplicationComposite? = null
 
     init {
         threadStopped = false
@@ -30,23 +30,23 @@ class SessionConnectionMonitor(monitorInterval: Int) : Runnable {
 
     override fun run() {
         this.threadStopped = false
-        if (log.isWarnEnabled) {
-            log.warn("Connection monitor is now running..")
+        if (logger.isWarnEnabled()) {
+            logger.warn {"Connection monitor is now running.."}
         }
         while (!threadStopped) {
             var anyRemoved = false
             val it: MutableIterator<Map.Entry<String, Session>> = sessions.entries.iterator()
             while (it.hasNext()) {
                 val entry: Map.Entry<String, Session> = it.next()
-                if (!isConnected(entry.value)) {
-                    disconnect(entry.value)
-                    if (log.isWarnEnabled) {
-                        log.warn("Session " + entry.key + " has disconnected.")
+                if (!ConnectionManager.isConnected(entry.value)) {
+                    ConnectionManager.disconnect(entry.value)
+                    if (logger.isWarnEnabled()) {
+                        logger.warn { "Session " + entry.key + " has disconnected." }
                     }
-                    if (sshTunnelComposite != null) {
+                    if (applicationComposite != null) {
                         val s = entry.value
                         Display.getDefault().asyncExec {
-                            sshTunnelComposite!!.showDisconnectedMessage(
+                            applicationComposite!!.showDisconnectedMessage(
                                 s
                             )
                         }
@@ -55,13 +55,13 @@ class SessionConnectionMonitor(monitorInterval: Int) : Runnable {
                     if (!anyRemoved) anyRemoved = true
                 }
             }
-            if (sshTunnelComposite != null && anyRemoved) {
-                Display.getDefault().asyncExec { sshTunnelComposite!!.connectionStatusChanged() }
+            if (applicationComposite != null && anyRemoved) {
+                Display.getDefault().asyncExec { applicationComposite!!.connectionStatusChanged() }
             }
             try {
                 Thread.sleep(monitorInterval.toLong())
             } catch (e: InterruptedException) {
-                log.error(e)
+                logger.error(e) { "interrupted thread" }
             }
         }
     }
@@ -74,13 +74,8 @@ class SessionConnectionMonitor(monitorInterval: Int) : Runnable {
         sessions.remove(name)
     }
 
-    fun setSshTunnelComposite(sshTunnelComposite: SshTunnelComposite?) {
-        this.sshTunnelComposite = sshTunnelComposite
+    fun setSshTunnelComposite(applicationComposite: ApplicationComposite?) {
+        this.applicationComposite = applicationComposite
     }
 
-    companion object {
-        private val log: Log = LogFactory.getLog(
-            SessionConnectionMonitor::class.java
-        )
-    }
 }

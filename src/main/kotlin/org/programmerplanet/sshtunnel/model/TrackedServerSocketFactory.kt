@@ -1,14 +1,15 @@
 package org.programmerplanet.sshtunnel.model
 
 import com.jcraft.jsch.ServerSocketFactory
-import org.apache.commons.logging.Log
-import org.apache.commons.logging.LogFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.UnknownHostException
 import java.util.concurrent.ConcurrentHashMap
+
+private val logger = KotlinLogging.logger {}
 
 class TrackedServerSocketFactory : ServerSocketFactory {
     private val socketMap: MutableMap<String, ServerSocket> =
@@ -34,21 +35,17 @@ class TrackedServerSocketFactory : ServerSocketFactory {
                 try {
                     customSocket.close()
                 } catch (e: IOException) {
-                    log.error(e)
+                    logger.error(e) { "failed to close socket" }
                 } finally {
                     socketMap.remove(key)
                 }
             }
         } catch (e: UnknownHostException) {
-            log.error(e)
+            logger.error(e) { "failed to connect to host" }
         }
     }
 
     companion object {
-        private val log: Log = LogFactory.getLog(
-            TrackedServerSocketFactory::class.java
-        )
-
         fun normalize(address: String?): String? {
             var initAddress: String? = address
             if (initAddress != null) {
@@ -84,16 +81,10 @@ internal class CustomServerSocket(port: Int, backlog: Int, bindAddr: InetAddress
                 try {
                     socket.close()
                 } catch (e: IOException) {
-                    log.error(e)
+                    logger.error(e) { "failed to close socket" }
                 }
             }
             tunnelSockets.remove(key)
         }
-    }
-
-    companion object {
-        private val log: Log = LogFactory.getLog(
-            CustomServerSocket::class.java
-        )
     }
 }

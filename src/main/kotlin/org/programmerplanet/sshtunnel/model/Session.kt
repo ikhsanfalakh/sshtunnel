@@ -21,25 +21,27 @@ package org.programmerplanet.sshtunnel.model
  * @author [Joseph Fifield](jfifield@programmerplanet.org)
  * @author [Mulya Agung](agungm@outlook.com)
  */
-class Session(@JvmField var sessionName: String) : Comparable<Session> {
-    @JvmField var hostname: String? = null
-    @JvmField var port: Int = DEFAULT_PORT
-    @JvmField var username: String? = null
-    @JvmField var password: String? = null
-    @JvmField val tunnels: MutableList<Tunnel> = ArrayList()
-    @JvmField var identityPath: String? = null
-    @JvmField var passPhrase: String? = null
-    @JvmField var isCompressed: Boolean = false
-    @JvmField var ciphers: String? = null
-    @JvmField var debugLogPath: String? = null
+data class Session(
+    var sessionName: String,
+    var hostname: String? = null,
+    var port: Int = DEFAULT_PORT,
+    var username: String? = null,
+    var password: String? = null,
+    var identityPath: String? = null,
+    var passPhrase: String? = null,
+    var isCompressed: Boolean = false,
+    var ciphers: String? = null,
+    var debugLogPath: String? = null,
+    val tunnels: MutableList<Tunnel> = mutableListOf()
+) : Comparable<Session> {
 
-    override fun toString(): String {
-        return "Session (" + sessionName + ": " + username + "@" + hostname + (if (port != DEFAULT_PORT) ":$port" else "") + ")"
+    override fun toString() = buildString {
+        append("Session ($sessionName: $username@$hostname")
+        if (port != DEFAULT_PORT) append(":$port")
+        append(")")
     }
 
-    override fun compareTo(other: Session): Int {
-        return sessionName.compareTo(other.sessionName)
-    }
+    override fun compareTo(other: Session) = sessionName.compareTo(other.sessionName)
 
     companion object {
         private const val DEFAULT_PORT = 22

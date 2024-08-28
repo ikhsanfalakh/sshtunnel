@@ -28,19 +28,16 @@ import org.eclipse.swt.widgets.Shell
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        Display.setAppName(SshTunnelComposite.APPLICATION_TITLE)
+        Display.setAppName(ApplicationComposite.APPLICATION_TITLE)
         val display = Display()
-        try {
-            val shell = Shell(display)
-            SshTunnelComposite(shell)
-            shell.open()
-            while (!shell.isDisposed) {
-                if (!display.readAndDispatch()) {
-                    display.sleep()
-                }
+        val shell = Shell(display)
+        ApplicationComposite(shell)
+        shell.open()
+        while (!shell.isDisposed) {
+            if (!display.readAndDispatch()) {
+                display.sleep()
             }
-        } finally {
-            display.dispose()
         }
+        display.dispose()
     }
 }

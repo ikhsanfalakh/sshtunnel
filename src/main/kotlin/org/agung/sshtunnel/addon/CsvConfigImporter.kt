@@ -11,7 +11,7 @@ import java.util.stream.Stream
  * @author [Mulya Agung](agungm@outlook.com)
  */
 class CsvConfigImporter {
-    val tunnelConfHeaders: List<String?> = ArrayList(
+    private val tunnelConfHeaders: List<String?> = ArrayList(
         mutableListOf<String?>("localAddress", "localPort", "remoteAddress", "remotePort", "type")
     )
 

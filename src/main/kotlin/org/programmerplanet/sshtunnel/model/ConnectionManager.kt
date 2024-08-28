@@ -20,8 +20,7 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Logger
 import com.jcraft.jsch.UserInfo
-import org.apache.commons.logging.Log
-import org.apache.commons.logging.LogFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.eclipse.swt.widgets.Shell
 import org.programmerplanet.sshtunnel.ui.DefaultUserInfo
 import java.io.File
@@ -29,6 +28,8 @@ import java.io.IOException
 import java.util.*
 import java.util.logging.FileHandler
 import java.util.logging.SimpleFormatter
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Responsible for connecting and disconnecting ssh connections and the
@@ -50,7 +51,6 @@ class ConnectionManager {
     }
 
     companion object {
-        private val log: Log = LogFactory.getLog(ConnectionManager::class.java)
 
         private const val TIMEOUT = 20000
         private const val KEEP_ALIVE_INTERVAL = 40000
@@ -92,7 +92,7 @@ class ConnectionManager {
                     }
                 } catch (e: JSchException) {
                     status = -1
-                    log.error(e)
+                    logger.error(e) {"failed to update tunnel status"}
                 }
             }
             return status
@@ -100,7 +100,7 @@ class ConnectionManager {
 
         @Throws(ConnectionException::class)
         fun connect(session: Session, parent: Shell) {
-            log.info("Connecting session: $session")
+            logger.info {"Connecting session: $session"}
             clearTunnelExceptions(session)
             var jschSession: com.jcraft.jsch.Session? = connections[session]
             try {
@@ -184,7 +184,7 @@ class ConnectionManager {
                     startTunnel(jschSession, tunnel)
                 } catch (e: Exception) {
                     tunnel.exception = e
-                    log.error("Error starting tunnel: $tunnel", e)
+                    logger.error(e) { "Error starting tunnel: $tunnel" }
                 }
             }
         }
@@ -209,7 +209,7 @@ class ConnectionManager {
 
 
         fun disconnect(session: Session) {
-            log.info("Disconnecting session: $session")
+            logger.info { "Disconnecting session: $session" }
             clearTunnelExceptions(session)
             val jschSession = connections[session]
             if (jschSession != null) {
@@ -224,7 +224,7 @@ class ConnectionManager {
                 try {
                     stopTunnel(jschSession, tunnel)
                 } catch (e: Exception) {
-                    log.error("Error stopping tunnel: $tunnel", e)
+                    logger.error(e) { "Error stopping tunnel: $tunnel" }
                 }
             }
         }
@@ -280,4 +280,4 @@ internal class SshLogger(filePath: String) : Logger {
 
 }
 
-
+internal class ConnectionException(cause: Throwable) : Exception(cause)

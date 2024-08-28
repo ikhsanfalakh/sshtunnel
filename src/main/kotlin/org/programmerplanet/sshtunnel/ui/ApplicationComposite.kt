@@ -25,27 +25,46 @@ import org.eclipse.swt.layout.GridData
 import org.eclipse.swt.layout.GridLayout
 import org.eclipse.swt.widgets.*
 import org.programmerplanet.sshtunnel.model.*
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.changeTunnelIfSessionConnected
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.connect
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.isConnected
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.startTunnelIfSessionConnected
-import org.programmerplanet.sshtunnel.model.ConnectionManager.Companion.stopTunnelIfSessionConnected
+import org.programmerplanet.sshtunnel.model.ConnectionManager
 import java.io.IOException
 import java.io.InputStream
 import kotlin.system.exitProcess
+
+enum class ImageResource(private val fileName: String) {
+    App("/images/sshtunnel.png"),
+    Connect("/images/connect.png"),
+    Disconnect("/images/disconnect.png"),
+    ConnectAll("/images/connect_all.png"),
+    DisconnectAll("/images/disconnect_all.png"),
+    Connected("/images/bullet_green.png"),
+    Disconnected("/images/bullet_red.png"),
+    Add("/images/add.png"),
+    Edit("/images/edit.png"),
+    Remove("/images/delete.png"),
+    Import("/images/import.png"),
+    Export("/images/export.png");
+
+    private var image: Image? = null
+
+    fun getImage(display: Display): Image {
+        if (image == null || image!!.isDisposed) {
+            image = Image(display, this.javaClass.getResourceAsStream(fileName))
+        }
+        return image!!
+    }
+
+    companion object {
+        fun disposeAll() {
+            entries.forEach { it.image?.dispose() }
+        }
+    }
+}
 
 /**
  * @author [Mulya Agung](agungm@outlook.com)
  * @author [Joseph Fifield](jfifield@programmerplanet.org)
  */
-class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) {
-    private var applicationImage: Image
-    private var connectImage: Image
-    private var disconnectImage: Image
-    private var connectAllImage: Image
-    private var disconnectAllImage: Image
-    private var connectedImage: Image
-    private var disconnectedImage: Image
+class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE) {
 
     private lateinit var connectButton: Button
     private lateinit var disconnectButton: Button
@@ -72,16 +91,9 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
             messageBox.message = "Unable to load configuration."
             messageBox.open()
         }
-        applicationImage = loadImage(APPLICATION_IMAGE_PATH)
-        connectImage = loadImage(CONNECT_IMAGE_PATH)
-        disconnectImage = loadImage(DISCONNECT_IMAGE_PATH)
-        connectAllImage = loadImage(CONNECT_ALL_IMAGE_PATH)
-        disconnectAllImage = loadImage(DISCONNECT_ALL_IMAGE_PATH)
-        connectedImage = loadImage(CONNECTED_IMAGE_PATH)
-        disconnectedImage = loadImage(DISCONNECTED_IMAGE_PATH)
         shell.text = APPLICATION_TITLE
         shell.layout = FillLayout()
-        shell.image = applicationImage
+        shell.image = ImageResource.App.getImage(display)
         shell.addShellListener(object : ShellAdapter() {
             override fun shellClosed(e: ShellEvent) {
                 exit()
@@ -93,18 +105,18 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
         })
         layout = GridLayout()
         sashForm = SashForm(this, SWT.VERTICAL)
-        createSashForm()        
+        createSashForm()
         val tunnelChangeListener: TunnelChangeListener = object : TunnelChangeListener {
             override fun tunnelAdded(session: Session, tunnel: Tunnel) {
-                startTunnelIfSessionConnected(session, tunnel)
+                ConnectionManager.startTunnelIfSessionConnected(session, tunnel)
             }
 
             override fun tunnelChanged(session: Session, tunnel: Tunnel, prevTunnel: Tunnel?): Int {
-                return changeTunnelIfSessionConnected(session, tunnel, prevTunnel!!)
+                return ConnectionManager.changeTunnelIfSessionConnected(session, tunnel, prevTunnel!!)
             }
 
             override fun tunnelRemoved(session: Session, tunnel: Tunnel) {
-                stopTunnelIfSessionConnected(session, tunnel)
+                ConnectionManager.stopTunnelIfSessionConnected(session, tunnel)
             }
 
             override fun tunnelSelectionChanged(tunnel: Tunnel) {
@@ -159,7 +171,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
     }
 
     private fun loadImage(path: String): Image {
-        val stream: InputStream? = SshTunnelComposite::class.java.getResourceAsStream(path)
+        val stream: InputStream? = ApplicationComposite::class.java.getResourceAsStream(path)
         try {
             return Image(this.display, stream)
         } finally {
@@ -191,30 +203,30 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
         connectButton = Button(buttonBarComposite, SWT.PUSH)
         connectButton.text = "Connect"
         connectButton.toolTipText = "Connect"
-        connectButton.image = connectImage
+        connectButton.image = ImageResource.Connect.getImage(display)
         connectButton.isEnabled = false
 
         disconnectButton = Button(buttonBarComposite, SWT.PUSH)
         disconnectButton.text = "Disconnect"
         disconnectButton.toolTipText = "Disconnect"
-        disconnectButton.image = disconnectImage
+        disconnectButton.image = ImageResource.Disconnect.getImage(display)
         disconnectButton.isEnabled = false
 
         connectAllButton = Button(buttonBarComposite, SWT.PUSH)
         connectAllButton.text = "Connect All"
         connectAllButton.toolTipText = "Connect All"
-        connectAllButton.image = connectAllImage
+        connectAllButton.image = ImageResource.ConnectAll.getImage(display)
         connectAllButton.isEnabled = true
 
         disconnectAllButton = Button(buttonBarComposite, SWT.PUSH)
         disconnectAllButton.text = "Disconnect All"
         disconnectAllButton.toolTipText = "Disconnect All"
-        disconnectAllButton.image = disconnectAllImage
+        disconnectAllButton.image = ImageResource.DisconnectAll.getImage(display)
         disconnectAllButton.isEnabled = false
 
         connectButton.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(e: SelectionEvent) {
-                val display = this@SshTunnelComposite.display
+                val display = this@ApplicationComposite.display
                 val runnable = Runnable { connect() }
                 display.asyncExec(runnable)
             }
@@ -222,7 +234,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
 
         disconnectButton.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(e: SelectionEvent) {
-                val display = this@SshTunnelComposite.display
+                val display = this@ApplicationComposite.display
                 val runnable = Runnable { disconnect() }
                 display.asyncExec(runnable)
             }
@@ -230,7 +242,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
 
         connectAllButton.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(e: SelectionEvent) {
-                val display = this@SshTunnelComposite.display
+                val display = this@ApplicationComposite.display
                 val runnable = Runnable { connectAll() }
                 display.asyncExec(runnable)
             }
@@ -238,7 +250,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
 
         disconnectAllButton.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(e: SelectionEvent) {
-                val display = this@SshTunnelComposite.display
+                val display = this@ApplicationComposite.display
                 val runnable = Runnable { disconnectAll() }
                 display.asyncExec(runnable)
             }
@@ -288,8 +300,8 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
     }
 
     private fun updateConnectButtons() {
-        connectButton.isEnabled = !isConnected(currentSession)
-        disconnectButton.isEnabled = isConnected(currentSession)
+        connectButton.isEnabled = !ConnectionManager.isConnected(currentSession)
+        disconnectButton.isEnabled = ConnectionManager.isConnected(currentSession)
         connectAllButton.isEnabled = anyDisconnectedSessions()
         disconnectAllButton.isEnabled = anyConnectedSessions()
     }
@@ -297,7 +309,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
     private fun anyDisconnectedSessions(): Boolean {
         var result = false
         for (session in configuration.getSessions()) {
-            if (!isConnected(session)) {
+            if (!ConnectionManager.isConnected(session)) {
                 result = true
                 break
             }
@@ -308,7 +320,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
     private fun anyConnectedSessions(): Boolean {
         var result = false
         for (session in configuration.getSessions()) {
-            if (isConnected(session)) {
+            if (ConnectionManager.isConnected(session)) {
                 result = true
                 break
             }
@@ -318,12 +330,12 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
 
     private fun connect(session: Session? = currentSession) {
         save()
-        if (session != null && !isConnected(session)) {
+        if (session != null && !ConnectionManager.isConnected(session)) {
             showProgressBar()
 
             Thread {
                 try {
-                    connect(session, shell)
+                    ConnectionManager.connect(session, shell)
                     // Put to monitored list
                     SessionConnectionMonitorFactory.addSession(session.sessionName, session)
                 } catch (ce: ConnectionException) {
@@ -371,7 +383,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
 
     private fun disconnect(session: Session? = currentSession) {
         save()
-        if (session != null && isConnected(session)) {
+        if (session != null && ConnectionManager.isConnected(session)) {
             ConnectionManager.disconnect(session)
             SessionConnectionMonitorFactory.removeSession(session.sessionName)
         }
@@ -387,8 +399,8 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
             try {
                 for (session: Session in configuration.getSessions()) {
                     sessionToConnect = session
-                    if (!isConnected(sessionToConnect)) {
-                        connect(sessionToConnect, shell)
+                    if (!ConnectionManager.isConnected(sessionToConnect)) {
+                        ConnectionManager.connect(sessionToConnect, shell)
                     }
                 }
             } catch (ce: ConnectionException) {
@@ -414,7 +426,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
     private fun disconnectAll() {
         save()
         for (session in configuration.getSessions()) {
-            if (isConnected(session)) {
+            if (ConnectionManager.isConnected(session)) {
                 ConnectionManager.disconnect(session)
             }
         }
@@ -426,7 +438,7 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
 
         trayItem = TrayItem(tray, 0)
         trayItem.toolTipText = APPLICATION_TITLE
-        trayItem.image = applicationImage
+        trayItem.image = ImageResource.App.getImage(display)
 
         trayItem.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(e: SelectionEvent) {
@@ -444,13 +456,13 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
                     val source = event.widget.data
                     if (source is Session) {
                         val runnable = Runnable {
-                            val connectedBefore = isConnected(source)
+                            val connectedBefore = ConnectionManager.isConnected(source)
                             if (connectedBefore) {
                                 disconnect(source)
                             } else {
                                 connect(source)
                             }
-                            val connectedAfter = isConnected(source)
+                            val connectedAfter = ConnectionManager.isConnected(source)
                             if (connectedBefore != connectedAfter) {
                                 val title = "Session: " + source.sessionName
                                 val message =
@@ -472,7 +484,9 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
                 val text = session.sessionName
                 menuItem.text = text
                 val image =
-                    if (isConnected(session)) connectedImage else disconnectedImage
+                    if (ConnectionManager.isConnected(session)) ImageResource.Connect.getImage(display) else ImageResource.Disconnect.getImage(
+                        display
+                    )
                 menuItem.image = image
                 menuItem.addListener(SWT.Selection, menuItemListener)
             }
@@ -499,21 +513,11 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
         exitProcess(0)
     }
 
-    private fun disposeImages() {
-        applicationImage.dispose()
-        connectImage.dispose()
-        disconnectImage.dispose()
-        connectAllImage.dispose()
-        disconnectAllImage.dispose()
-        connectedImage.dispose()
-        disconnectedImage.dispose()
-    }
-
     /**
      * @see org.eclipse.swt.widgets.Widget.dispose
      */
     override fun dispose() {
-        disposeImages()
+        ImageResource.disposeAll()
         super.dispose()
     }
 
@@ -521,12 +525,6 @@ class SshTunnelComposite(private val shell: Shell) : Composite(shell, SWT.NONE) 
         const val APPLICATION_TITLE: String = "SSH Tunnel NG"
         private const val APPLICATION_VERSION = "v0.7"
         private const val APPLICATION_SITE = "github.com/agung-m/sshtunnel-ng"
-        private const val APPLICATION_IMAGE_PATH = "/images/sshtunnel-ng.png"
-        private const val CONNECT_IMAGE_PATH = "/images/connect.png"
-        private const val DISCONNECT_IMAGE_PATH = "/images/disconnect.png"
-        private const val CONNECT_ALL_IMAGE_PATH = "/images/connect_all.png"
-        private const val DISCONNECT_ALL_IMAGE_PATH = "/images/disconnect_all.png"
-        private const val CONNECTED_IMAGE_PATH = "/images/bullet_green.png"
-        private const val DISCONNECTED_IMAGE_PATH = "/images/bullet_red.png"
     }
 }
+

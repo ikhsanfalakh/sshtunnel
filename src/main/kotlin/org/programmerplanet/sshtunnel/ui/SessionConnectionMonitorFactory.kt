@@ -1,7 +1,9 @@
 package org.programmerplanet.sshtunnel.ui
 
-import org.apache.commons.logging.LogFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.programmerplanet.sshtunnel.model.Session
+
+private val logger = KotlinLogging.logger {}
 
 /**
  *
@@ -9,7 +11,6 @@ import org.programmerplanet.sshtunnel.model.Session
  */
 object SessionConnectionMonitorFactory {
     private const val DEF_MONITOR_INTERVAL = 10000
-    private val log = LogFactory.getLog(SessionConnectionMonitorFactory::class.java)
 
     private val lock = Any()
     private var thread: Thread? = null
@@ -30,8 +31,8 @@ object SessionConnectionMonitorFactory {
             thread?.let {
                 sessionConnectionMonitor.setThreadStopped(true)
                 thread = null
-                if (log.isWarnEnabled) {
-                    log.warn("Connection monitor is stopped.")
+                if (logger.isWarnEnabled()) {
+                    logger.warn {"Connection monitor is stopped."}
                 }
             }
         }
@@ -45,7 +46,7 @@ object SessionConnectionMonitorFactory {
         sessionConnectionMonitor.removeSession(name)
     }
 
-    fun setSshTunnelComposite(sshTunnelComposite: SshTunnelComposite) {
-        sessionConnectionMonitor.setSshTunnelComposite(sshTunnelComposite)
+    fun setSshTunnelComposite(applicationComposite: ApplicationComposite) {
+        sessionConnectionMonitor.setSshTunnelComposite(applicationComposite)
     }
 }

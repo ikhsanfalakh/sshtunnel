@@ -16,12 +16,10 @@
  */
 package org.programmerplanet.sshtunnel.ui
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.agung.sshtunnel.addon.CsvConfigImporter
-import org.apache.commons.logging.Log
-import org.apache.commons.logging.LogFactory
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.*
-import org.eclipse.swt.graphics.Image
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.GridData
 import org.eclipse.swt.layout.GridLayout
@@ -30,6 +28,11 @@ import org.programmerplanet.sshtunnel.model.Session
 import org.programmerplanet.sshtunnel.model.Tunnel
 import java.io.IOException
 import java.util.*
+
+private val TUNNEL_CONF_NAMES = arrayOf("CSV files")
+private val TUNNEL_CONF_EXT = arrayOf("*.csv")
+
+private val logger = KotlinLogging.logger {}
 
 /**
  *
@@ -50,20 +53,10 @@ class TunnelsComposite(
     private var importTunnelButton: Button
     private var exportTunnelButton: Button
     private var session: Session? = null
-    private var addImage: Image
-    private var editImage: Image
-    private var deleteImage: Image
-    private var importImage: Image
-    private var exportImage: Image
 
     private val csvConfigImporter = CsvConfigImporter()
 
     init {
-        addImage = loadImage(ADD_IMAGE_PATH)
-        editImage = loadImage(EDIT_IMAGE_PATH)
-        deleteImage = loadImage(DELETE_IMAGE_PATH)
-        importImage = loadImage(IMPORT_IMAGE_PATH)
-        exportImage = loadImage(EXPORT_IMAGE_PATH)
         layout = FillLayout()
         val group = Group(this, SWT.NULL)
         group.text = "Tunnels"
@@ -90,54 +83,33 @@ class TunnelsComposite(
     }
 
     private fun createButtonBarComposite(group: Group, buttonBarComposite: Composite) {
-        buttonBarComposite.layout = FillLayout()
-
-        val gridData = GridData()
-        gridData.horizontalAlignment = GridData.END
-        buttonBarComposite.layoutData = gridData
-
-        addTunnelButton.text = "Add"
-        addTunnelButton.toolTipText = "Add Tunnel"
-        addTunnelButton.image = addImage
-        addTunnelButton.isEnabled = false
-
-        editTunnelButton.text = "Edit"
-        editTunnelButton.toolTipText = "Edit Tunnel"
-        editTunnelButton.image = editImage
-        editTunnelButton.isEnabled = false
-
-        removeTunnelButton.text = "Remove"
-        removeTunnelButton.toolTipText = "Remove Tunnel"
-        removeTunnelButton.image = deleteImage
-        removeTunnelButton.isEnabled = false
-
-        importTunnelButton.text = "Import"
-        importTunnelButton.toolTipText = "Import Tunnels from a CSV file"
-        importTunnelButton.image = importImage
-        importTunnelButton.isEnabled = false
-
-        exportTunnelButton.text = "Export"
-        exportTunnelButton.toolTipText = "Export Tunnels to a CSV file"
-        exportTunnelButton.image = exportImage
-        exportTunnelButton.isEnabled = false
-
-        addTunnelButton.addSelectionListener(object : SelectionAdapter() {
-            override fun widgetSelected(e: SelectionEvent) {
-                addTunnel()
+        buttonBarComposite.apply {
+            layout = FillLayout()
+            layoutData = GridData().apply {
+                horizontalAlignment = GridData.END
             }
-        })
+        }
 
-        editTunnelButton.addSelectionListener(object : SelectionAdapter() {
-            override fun widgetSelected(e: SelectionEvent) {
-                editTunnel()
-            }
-        })
+        val buttons: List<Triple<Button, String, ImageResource>> = listOf(
+            Triple(addTunnelButton, "Add", ImageResource.Add),
+            Triple(editTunnelButton, "Edit", ImageResource.Edit),
+            Triple(removeTunnelButton, "Remove", ImageResource.Remove),
+            Triple(importTunnelButton, "Import", ImageResource.Import),
+            Triple(exportTunnelButton, "Export", ImageResource.Export)
+        )
 
-        removeTunnelButton.addSelectionListener(object : SelectionAdapter() {
-            override fun widgetSelected(e: SelectionEvent) {
-                removeTunnel()
+        buttons.forEach { (button, text, image) ->
+            button.apply {
+                this.text = text
+                toolTipText = "$text Tunnel"
+                this.image = image.getImage(display)
+                isEnabled = false
             }
-        })
+        }
+
+        addTunnelButton.onSelect { addTunnel() }
+        editTunnelButton.onSelect { editTunnel() }
+        removeTunnelButton.onSelect { removeTunnel() }
 
         importTunnelButton.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(event: SelectionEvent) {
@@ -150,7 +122,7 @@ class TunnelsComposite(
                     try {
                         importTunnels(fn)
                     } catch (e: IOException) {
-                        log.error("failed to import tunnels", e)
+                        logger.error(e) { "failed to import tunnels"}
                     }
                 }
             }
@@ -167,6 +139,12 @@ class TunnelsComposite(
                     exportTunnels(fn)
                 }
             }
+        })
+    }
+
+    private fun Button.onSelect(action: () -> Unit) {
+        addSelectionListener(object : SelectionAdapter() {
+            override fun widgetSelected(e: SelectionEvent) = action()
         })
     }
 
@@ -189,29 +167,30 @@ class TunnelsComposite(
         val column5 = TableColumn(tunnelTable, SWT.NULL)
         column5.text = "Remote Port"
 
-        val gridData = GridData()
-        gridData.grabExcessHorizontalSpace = true
-        gridData.horizontalAlignment = GridData.FILL
-        gridData.grabExcessVerticalSpace = true
-        gridData.verticalAlignment = GridData.FILL
-        tunnelTable.layoutData = gridData
+        tunnelTable.layoutData = GridData().apply {
+            grabExcessHorizontalSpace = true
+            horizontalAlignment = GridData.FILL
+            grabExcessVerticalSpace = true
+            verticalAlignment = GridData.FILL
+        }
 
         tunnelTable.addControlListener(object : ControlAdapter() {
             override fun controlResized(e: ControlEvent) {
                 val directionColumnWidth = 30
                 val portColumnWidth = 100
-
                 val area = tunnelTable.clientArea
-                var relativeWidth = area.width
-                relativeWidth -= directionColumnWidth
-                relativeWidth -= (portColumnWidth * 2)
-                relativeWidth /= 2
-
-                tunnelTable.getColumn(0).width = relativeWidth
-                tunnelTable.getColumn(1).width = portColumnWidth
-                tunnelTable.getColumn(2).width = directionColumnWidth
-                tunnelTable.getColumn(3).width = relativeWidth
-                tunnelTable.getColumn(4).width = portColumnWidth
+                val relativeWidth = (area.width - directionColumnWidth - (portColumnWidth * 2)) / 2
+                tunnelTable.apply {
+                    arrayOf(
+                        relativeWidth,
+                        portColumnWidth,
+                        directionColumnWidth,
+                        relativeWidth,
+                        portColumnWidth
+                    ).forEachIndexed { i, w ->
+                        getColumn(i).width = w
+                    }
+                }
             }
         })
 
@@ -280,8 +259,7 @@ class TunnelsComposite(
                 updateTable()
                 val status = listener.tunnelChanged(session!!, tunnel, prevTunnel)
                 if (status != 0) {
-                    // Failed cancelling tunnel bind
-                    log.error("Unable to stop existing tunnel")
+                    logger.error {"Unable to stop existing tunnel"}
                 }
             }
         }
@@ -340,44 +318,4 @@ Do you want to import them now?
         }
     }
 
-    private fun loadImage(path: String): Image {
-        val stream = SessionsComposite::class.java.getResourceAsStream(path)
-        try {
-            return Image(this.display, stream)
-        } finally {
-            try {
-                Objects.requireNonNull(stream).close()
-            } catch (e: IOException) {
-                // ignore
-            }
-        }
-    }
-
-    private fun disposeImages() {
-        addImage.dispose()
-        editImage.dispose()
-        deleteImage.dispose()
-        importImage.dispose()
-        exportImage.dispose()
-    }
-
-    /**
-     * @see org.eclipse.swt.widgets.Widget.dispose
-     */
-    override fun dispose() {
-        disposeImages()
-        super.dispose()
-    }
-
-    companion object {
-        private val log: Log = LogFactory.getLog(TunnelsComposite::class.java)
-
-        private const val ADD_IMAGE_PATH = "/images/add.png"
-        private const val EDIT_IMAGE_PATH = "/images/edit.png"
-        private const val DELETE_IMAGE_PATH = "/images/delete.png"
-        private const val IMPORT_IMAGE_PATH = "/images/import.png"
-        private const val EXPORT_IMAGE_PATH = "/images/export.png"
-        private val TUNNEL_CONF_NAMES = arrayOf("CSV files")
-        private val TUNNEL_CONF_EXT = arrayOf("*.csv")
-    }
 }
