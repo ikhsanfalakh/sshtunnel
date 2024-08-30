@@ -8,6 +8,7 @@ plugins {
     `java-library`
     `maven-publish`
     kotlin("jvm")
+    id("application")
 }
 
 repositories {
@@ -36,6 +37,15 @@ tasks.withType<JavaCompile>() {
 
 tasks.withType<Javadoc>() {
     options.encoding = "UTF-8"
+}
+
+application {
+    mainClass.set("org.programmerplanet.sshtunnel.ui.Main")
+}
+
+tasks.named<JavaExec>("run") {
+    classpath = sourceSets["main"].runtimeClasspath
+    standardInput = System.`in`
 }
 
 kotlin {
