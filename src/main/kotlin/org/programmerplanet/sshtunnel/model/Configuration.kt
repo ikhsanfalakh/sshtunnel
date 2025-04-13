@@ -32,7 +32,7 @@ import java.util.*
 class Configuration {
     var top: Int = 0
     var left: Int = 0
-    var width: Int = 500
+    var width: Int = 700
     var height: Int = 400
     var weights: IntArray = intArrayOf(5, 7)
     val sessions: MutableList<Session> = ArrayList()

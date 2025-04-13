@@ -18,6 +18,7 @@ package org.programmerplanet.sshtunnel.ui
 
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
+import org.programmerplanet.sshtunnel.util.SingleInstanceChecker
 
 /**
  * Application entry point.
@@ -28,6 +29,11 @@ import org.eclipse.swt.widgets.Shell
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
+        if (SingleInstanceChecker.isAppAlreadyRunning()) {
+            println("Aplikasi sudah berjalan.")
+            return
+        }
+
         Display.setAppName(ApplicationComposite.APPLICATION_TITLE)
         val display = Display()
         val shell = Shell(display)

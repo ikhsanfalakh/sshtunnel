@@ -76,7 +76,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
     private lateinit var progressBar: ProgressBar
 
     private var configuration: Configuration = Configuration()
-    private var sashForm: SashForm
+    private lateinit var sashForm: SashForm
     private var sessionsComposite: SessionsComposite
     private var tunnelsComposite: TunnelsComposite? = null
 
@@ -96,7 +96,9 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         shell.image = ImageResource.App.getImage(display)
         shell.addShellListener(object : ShellAdapter() {
             override fun shellClosed(e: ShellEvent) {
-                exit()
+                //exit()
+                e.doit = false // batalkan close
+                shell.visible = false // sembunyikan jendela
             }
 
             override fun shellIconified(e: ShellEvent) {
@@ -148,7 +150,8 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         createStatusBarComposite()
         createTrayIcon()
         shell.setBounds(configuration.left, configuration.top, configuration.width, configuration.height)
-        sashForm.weights = configuration.weights
+        sashForm.setWeights(*configuration.weights)
+        //sashForm.weights = configuration.weights
         // Run connection monitor
         SessionConnectionMonitorFactory.setSshTunnelComposite(this)
         SessionConnectionMonitorFactory.startMonitor()

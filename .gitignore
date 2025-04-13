@@ -5,3 +5,5 @@ gradlew.bat
 /build
 .gradle/
 logs/
+.kotlin/errors/*.log
+.DS_Store

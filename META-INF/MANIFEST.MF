@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: org.programmerplanet.sshtunnel.ui.Main
+Implementation-Version: 0.8
+

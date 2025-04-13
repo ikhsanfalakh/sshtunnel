@@ -16,19 +16,35 @@ repositories {
     maven {
         url = uri("https://repo.eclipse.org/content/groups/releases/")
     }
-
 }
 
+val osName = System.getProperty("os.name").lowercase()
+val arch = System.getProperty("os.arch")
+
 dependencies {
-    api(libs.com.github.mwiede.jsch)
-    api(libs.org.eclipse.swt.org.eclipse.swt.gtk.linux.x86.v64)
+    api("com.github.mwiede:jsch:0.2.25")
+    when {
+        osName.contains("mac") && arch == "aarch64" -> {
+            implementation(files("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar"))
+        }
+        osName.contains("mac") -> {
+            implementation(files("libs/org.eclipse.swt.cocoa.macosx.x86_64-3.129.0.jar"))
+        }
+        osName.contains("win") -> {
+            implementation(files("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar"))
+        }
+        osName.contains("nux") -> {
+            implementation(files("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar"))
+        }
+        else -> error("Unsupported OS")
+    }
     implementation(kotlin("stdlib-jdk8"))
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     runtimeOnly("ch.qos.logback:logback-classic:1.4.12")
 }
 
 group = "org.programmerplanet"
-version = "0.7"
+version = "0.8"
 description = "ssh-tunel-manager"
 
 tasks.withType<JavaCompile>() {
@@ -43,6 +59,17 @@ application {
     mainClass.set("org.programmerplanet.sshtunnel.ui.Main")
 }
 
+tasks.jar {
+    archiveBaseName.set("sshtunnel-ng")
+    archiveVersion.set("")
+    manifest {
+        attributes[
+            "Main-Class"] = "org.programmerplanet.sshtunnel.ui.Main"
+        attributes["Implementation-Version"] = project.version
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 tasks.named<JavaExec>("run") {
     classpath = sourceSets["main"].runtimeClasspath
     standardInput = System.`in`
@@ -50,4 +77,41 @@ tasks.named<JavaExec>("run") {
 
 kotlin {
     jvmToolchain(18)
+}
+
+val distPlatforms = listOf("windows", "linux", "mac")
+val swtArtifacts = mapOf(
+    "windows" to "org.eclipse.swt.win32.win32.x86_64",
+    "linux" to "org.eclipse.swt.gtk.linux.x86_64",
+    "mac" to "org.eclipse.swt.cocoa.macosx.aarch64"
+)
+
+distPlatforms.forEach { os ->
+    tasks.register<Copy>("dist${os.replaceFirstChar { it.uppercase() }}") {
+        val outputDir = layout.buildDirectory.dir("dist/$os")
+        into(outputDir)
+
+        from("build/libs/sshtunnel-ng.jar")
+
+        // Include all dependencies except SWT
+        from(configurations.runtimeClasspath.get().filterNot {
+            it.name.contains("org.eclipse.swt")
+        }) {
+            into("libs")
+        }
+
+        // Include only the SWT jar for this target OS
+        val swtJar = when (os) {
+            "windows" -> file("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar")
+            "linux" -> file("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar")
+            "mac" -> file("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar")
+            else -> error("Unsupported platform")
+        }
+
+        from(swtJar) {
+            into("libs")
+        }
+
+        from("scripts/$os/")
+    }
 }
