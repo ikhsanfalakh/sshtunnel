@@ -18,6 +18,7 @@ package org.programmerplanet.sshtunnel.ui
 
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
+import org.programmerplanet.sshtunnel.util.AppInfo
 import org.programmerplanet.sshtunnel.util.SingleInstanceChecker
 
 /**
@@ -34,7 +35,7 @@ object Main {
             return
         }
 
-        Display.setAppName(ApplicationComposite.APPLICATION_TITLE)
+        Display.setAppName(AppInfo.title)
         val display = Display()
         val shell = Shell(display)
         ApplicationComposite(shell)
