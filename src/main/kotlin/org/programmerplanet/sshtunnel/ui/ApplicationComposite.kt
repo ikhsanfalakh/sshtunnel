@@ -29,6 +29,7 @@ import org.programmerplanet.sshtunnel.model.ConnectionManager
 import java.io.IOException
 import java.io.InputStream
 import kotlin.system.exitProcess
+import org.programmerplanet.sshtunnel.util.AppInfo
 
 enum class ImageResource(private val fileName: String) {
     App("/images/sshtunnel.png"),
@@ -96,13 +97,22 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         shell.image = ImageResource.App.getImage(display)
         shell.addShellListener(object : ShellAdapter() {
             override fun shellClosed(e: ShellEvent) {
-                //exit()
-                e.doit = false // batalkan close
-                shell.visible = false // sembunyikan jendela
+                val messageBox = MessageBox(shell, SWT.ICON_QUESTION or SWT.YES or SWT.NO)
+                messageBox.text = "Exit Confirmation"
+                messageBox.message = "Do you want to exit SSH Tunnel NG?"
+
+                val response = messageBox.open()
+                if (response == SWT.YES) {
+                    exit()
+                } else {
+                    e.doit = false // Batalkan close
+                    shell.visible = false // Sembunyikan aplikasi ke tray
+                }
             }
 
             override fun shellIconified(e: ShellEvent) {
-                shell.minimized = true
+                e.doit = false
+                shell.visible = false // Sembunyikan jendela saat minimize
             }
         })
         layout = GridLayout()
@@ -150,8 +160,9 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         createStatusBarComposite()
         createTrayIcon()
         shell.setBounds(configuration.left, configuration.top, configuration.width, configuration.height)
-        sashForm.setWeights(*configuration.weights)
-        //sashForm.weights = configuration.weights
+        //sashForm.setWeights(*configuration.weights) //gunakan ini jika dicompile dari mac os
+        sashForm.weights = configuration.weights //gunakan ini jika dicompile dari windows
+
         // Run connection monitor
         SessionConnectionMonitorFactory.setSshTunnelComposite(this)
         SessionConnectionMonitorFactory.startMonitor()
@@ -445,7 +456,10 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
 
         trayItem.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(e: SelectionEvent) {
-                shell.minimized = !shell.minimized
+                //shell.minimized = !shell.minimized
+                shell.minimized = false
+                shell.visible = true
+                shell.setActive()
             }
         })
 
@@ -494,6 +508,14 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
                 menuItem.addListener(SWT.Selection, menuItemListener)
             }
 
+            val openApp = MenuItem(m, SWT.NONE)
+            openApp.text = "Open Application"
+            openApp.addListener(SWT.Selection) {
+                shell.minimized = false
+                shell.visible = true
+                shell.setActive()
+            }
+
             if (configuration.sessions.isNotEmpty()) {
                 MenuItem(m, SWT.SEPARATOR)
             }
@@ -525,9 +547,9 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
     }
 
     companion object {
-        const val APPLICATION_TITLE: String = "SSH Tunnel NG"
-        private const val APPLICATION_VERSION = "v0.7"
-        private const val APPLICATION_SITE = "github.com/agung-m/sshtunnel-ng"
+        private val APPLICATION_TITLE: String = AppInfo.title
+        private val APPLICATION_VERSION: String = AppInfo.version
+        private val APPLICATION_SITE: String = AppInfo.site
     }
 }
 

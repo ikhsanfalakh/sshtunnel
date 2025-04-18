@@ -3,6 +3,7 @@
  *
  * This project uses @Incubating APIs which are subject to change.
  */
+import java.util.Properties
 
 plugins {
     `java-library`
@@ -17,6 +18,19 @@ repositories {
         url = uri("https://repo.eclipse.org/content/groups/releases/")
     }
 }
+
+// Load properties from appinfo.properties in resources
+val appProperties = Properties().apply {
+    file("src/main/resources/appinfo.properties").inputStream().use { load(it) }
+}
+
+val appTitle = appProperties.getProperty("app.title") ?: "SSH Tunnel NG"
+val appVersion = appProperties.getProperty("app.version") ?: "0.1"
+val appSite = appProperties.getProperty("app.site") ?: "https://example.com"
+
+group = "org.programmerplanet"
+version = appVersion
+description = appTitle
 
 val osName = System.getProperty("os.name").lowercase()
 val arch = System.getProperty("os.arch")
@@ -43,10 +57,6 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic:1.4.12")
 }
 
-group = "org.programmerplanet"
-version = "0.8"
-description = "ssh-tunel-manager"
-
 tasks.withType<JavaCompile>() {
     options.encoding = "UTF-8"
 }
@@ -57,15 +67,27 @@ tasks.withType<Javadoc>() {
 
 application {
     mainClass.set("org.programmerplanet.sshtunnel.ui.Main")
+    applicationDefaultJvmArgs = listOf(
+        "-Dapp.title=$appTitle",
+        "-Dapp.version=$appVersion",
+        "-Dapp.site=$appSite"
+    )
 }
 
 tasks.jar {
     archiveBaseName.set("sshtunnel-ng")
     archiveVersion.set("")
+
     manifest {
-        attributes[
-            "Main-Class"] = "org.programmerplanet.sshtunnel.ui.Main"
-        attributes["Implementation-Version"] = project.version
+        attributes(
+            "Main-Class" to "org.programmerplanet.sshtunnel.ui.Main",
+            "Implementation-Version" to appVersion,
+            "Implementation-Title" to appTitle,
+            "Implementation-Vendor" to appSite,
+            "Class-Path" to configurations.runtimeClasspath.get()
+                .filter { it.name.endsWith(".jar") }
+                .joinToString(" ") { "libs/${it.name}" }
+        )
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
