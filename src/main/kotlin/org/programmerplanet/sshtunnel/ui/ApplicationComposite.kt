@@ -16,6 +16,7 @@
  */
 package org.programmerplanet.sshtunnel.ui
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events.*
@@ -33,17 +34,18 @@ import org.programmerplanet.sshtunnel.util.AppInfo
 
 enum class ImageResource(private val fileName: String) {
     App("/images/sshtunnel.png"),
-    Connect("/images/connect.png"),
-    Disconnect("/images/disconnect.png"),
+    Connect("/images/connect_on.png"),
+    Disconnect("/images/connect_off.png"),
     ConnectAll("/images/connect_all.png"),
     DisconnectAll("/images/disconnect_all.png"),
-    Connected("/images/bullet_green.png"),
-    Disconnected("/images/bullet_red.png"),
+    Connected("/images/connect_on.png"),
+    Disconnected("/images/connect_off.png"),
     Add("/images/add.png"),
     Edit("/images/edit.png"),
     Remove("/images/delete.png"),
     Import("/images/import.png"),
-    Export("/images/export.png");
+    Export("/images/export.png"),
+    RunAuto("/images/check.png");
 
     private var image: Image? = null
 
@@ -99,7 +101,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
             override fun shellClosed(e: ShellEvent) {
                 val messageBox = MessageBox(shell, SWT.ICON_QUESTION or SWT.YES or SWT.NO)
                 messageBox.text = "Exit Confirmation"
-                messageBox.message = "Do you want to exit SSH Tunnel NG?"
+                messageBox.message = "Do you want to exit\nSSH Tunnel NG?"
 
                 val response = messageBox.open()
                 if (response == SWT.YES) {
@@ -166,6 +168,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         // Run connection monitor
         SessionConnectionMonitorFactory.setSshTunnelComposite(this)
         SessionConnectionMonitorFactory.startMonitor()
+        connectAutoSessions()
     }
 
     private fun save() {
@@ -447,6 +450,37 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         connectionStatusChanged()
     }
 
+    private fun connectAutoSessions() {
+        val autoSessions = configuration.sessions.filter { it.isAutorunning }
+
+        if (autoSessions.isNotEmpty()) {
+            showProgressBar()
+            Thread {
+                autoSessions.forEach { session ->
+                    try {
+                        ConnectionManager.connect(session, shell)
+                        SessionConnectionMonitorFactory.addSession(session.sessionName, session)
+                    } catch (ce: ConnectionException) {
+                        try {
+                            ConnectionManager.disconnect(session)
+                        } catch (ignored: Exception) {
+                        }
+                        Display.getDefault().asyncExec {
+                            showErrorMessage(
+                                "Unable to connect to '${session.sessionName}'",
+                                ce
+                            )
+                        }
+                    }
+                }
+
+                Display.getDefault().asyncExec {
+                    this.connectionStatusChanged()
+                }
+            }.start()
+        }
+    }
+
     private fun createTrayIcon() {
         val tray: Tray = display.systemTray
 
@@ -547,6 +581,10 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
     }
 
     companion object {
+        private val logger = KotlinLogging.logger {}
+        init {
+            logger.info { "Starting monitor..." }
+        }
         private val APPLICATION_TITLE: String = AppInfo.title
         private val APPLICATION_VERSION: String = AppInfo.version
         private val APPLICATION_SITE: String = AppInfo.site

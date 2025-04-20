@@ -43,10 +43,12 @@ class EditTunnelDialog(parent: Shell, private val tunnel: Tunnel) : CustomDialog
         val layout = GridLayout()
         layout.numColumns = 2
         parent.layout = layout
+        val defaultFont = parent.font
 
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Local Address:"
+            font = defaultFont
         }
 
         localAddressText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
@@ -56,6 +58,7 @@ class EditTunnelDialog(parent: Shell, private val tunnel: Tunnel) : CustomDialog
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Local Port:"
+            font = defaultFont
         }
 
         localPortText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
@@ -65,6 +68,7 @@ class EditTunnelDialog(parent: Shell, private val tunnel: Tunnel) : CustomDialog
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Remote Address:"
+            font = defaultFont
         }
 
         remoteAddressText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
@@ -74,6 +78,7 @@ class EditTunnelDialog(parent: Shell, private val tunnel: Tunnel) : CustomDialog
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Remote Port:"
+            font = defaultFont
         }
 
         remotePortText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
@@ -83,6 +88,7 @@ class EditTunnelDialog(parent: Shell, private val tunnel: Tunnel) : CustomDialog
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Direction:"
+            font = defaultFont
         }
 
         val directionComposite = Composite(parent, SWT.NONE).apply {
@@ -107,7 +113,7 @@ class EditTunnelDialog(parent: Shell, private val tunnel: Tunnel) : CustomDialog
             localAddress = localAddressText.text.orEmpty()
             localPort = localPortText.text.toIntOrNull() ?: 0
             remoteAddress = remoteAddressText.text.orEmpty()
-            remotePort = localPortText.text.toIntOrNull() ?: 0
+            remotePort = remotePortText.text.toIntOrNull() ?: 0
             local = localRadioButton.selection
         }
         super.okPressed()

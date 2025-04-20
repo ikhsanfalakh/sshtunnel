@@ -16,6 +16,7 @@
 package org.programmerplanet.sshtunnel.ui
 
 import org.eclipse.swt.SWT
+import org.eclipse.swt.custom.TableEditor
 import org.eclipse.swt.events.*
 import org.eclipse.swt.graphics.Image
 import org.eclipse.swt.layout.FillLayout
@@ -94,6 +95,7 @@ class SessionsComposite(
         TableColumn(sessionTable, SWT.NULL).apply { text = "Hostname" }
         TableColumn(sessionTable, SWT.NULL).apply { text = "Port" }
         TableColumn(sessionTable, SWT.NULL).apply { text = "Username" }
+        TableColumn(sessionTable, SWT.NULL).apply { text = "Autorun" }
 
         sessionTable.layoutData = GridData().apply {
             grabExcessHorizontalSpace = true
@@ -104,13 +106,15 @@ class SessionsComposite(
 
         sessionTable.addControlListener(object : ControlAdapter() {
             override fun controlResized(e: ControlEvent) {
-                val iconColumnWidth = 22
-                val portColumnWidth = 100
+                val iconColumnWidth = 25
+                val portColumnWidth = 80
+                val autorunColumnWidth = 55
 
                 val area = sessionTable.clientArea
                 var relativeWidth = area.width
                 relativeWidth -= iconColumnWidth
                 relativeWidth -= portColumnWidth
+                relativeWidth -= autorunColumnWidth
                 relativeWidth /= 3
 
                 sessionTable.getColumn(0).width = iconColumnWidth
@@ -118,6 +122,7 @@ class SessionsComposite(
                 sessionTable.getColumn(2).width = relativeWidth
                 sessionTable.getColumn(3).width = portColumnWidth
                 sessionTable.getColumn(4).width = relativeWidth
+                sessionTable.getColumn(5).width = autorunColumnWidth
             }
         })
 
@@ -143,6 +148,7 @@ class SessionsComposite(
     fun updateTable() {
         sessionTable.removeAll()
         sessions.sort()
+
         for (session in sessions) {
             val tableItem = TableItem(sessionTable, SWT.NULL)
             tableItem.setText(
@@ -151,14 +157,18 @@ class SessionsComposite(
                     session.sessionName,
                     session.hostname,
                     session.port.toString(),
-                    session.username
+                    session.username,
+                    ""
                 )
             )
-            val image: Image =
-                if (ConnectionManager.isConnected(session)) ImageResource.Connected.getImage(display) else ImageResource.Disconnected.getImage(
-                    display
-                )
-            tableItem.setImage(0, image)
+            val imageConnection: Image =
+                if (ConnectionManager.isConnected(session)) ImageResource.Connected.getImage(display)
+                else ImageResource.Disconnected.getImage(display)
+            tableItem.setImage(0, imageConnection)
+
+            val imageAutoRunning: Image? =
+                if (session.isAutorunning) ImageResource.RunAuto.getImage(display) else null
+            tableItem.setImage(5, imageAutoRunning)
         }
     }
 
