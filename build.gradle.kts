@@ -3,6 +3,7 @@
  *
  * This project uses @Incubating APIs which are subject to change.
  */
+import java.util.Properties
 
 plugins {
     `java-library`
@@ -16,20 +17,45 @@ repositories {
     maven {
         url = uri("https://repo.eclipse.org/content/groups/releases/")
     }
-
 }
 
+// Load properties from appinfo.properties in resources
+val appProperties = Properties().apply {
+    file("src/main/resources/appinfo.properties").inputStream().use { load(it) }
+}
+
+val appTitle = appProperties.getProperty("app.title") ?: "SSH Tunnel NG"
+val appVersion = appProperties.getProperty("app.version") ?: "0.1"
+val appSite = appProperties.getProperty("app.site") ?: "https://example.com"
+
+group = "org.programmerplanet"
+version = appVersion
+description = appTitle
+
+val osName = System.getProperty("os.name").lowercase()
+val arch = System.getProperty("os.arch")
+
 dependencies {
-    api(libs.com.github.mwiede.jsch)
-    api(libs.org.eclipse.swt.org.eclipse.swt.gtk.linux.x86.v64)
+    api("com.github.mwiede:jsch:0.2.25")
+    when {
+        osName.contains("mac") && arch == "aarch64" -> {
+            implementation(files("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar"))
+        }
+        osName.contains("mac") -> {
+            implementation(files("libs/org.eclipse.swt.cocoa.macosx.x86_64-3.129.0.jar"))
+        }
+        osName.contains("win") -> {
+            implementation(files("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar"))
+        }
+        osName.contains("nux") -> {
+            implementation(files("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar"))
+        }
+        else -> error("Unsupported OS")
+    }
     implementation(kotlin("stdlib-jdk8"))
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     runtimeOnly("ch.qos.logback:logback-classic:1.4.12")
 }
-
-group = "org.programmerplanet"
-version = "0.7"
-description = "ssh-tunel-manager"
 
 tasks.withType<JavaCompile>() {
     options.encoding = "UTF-8"
@@ -41,6 +67,29 @@ tasks.withType<Javadoc>() {
 
 application {
     mainClass.set("org.programmerplanet.sshtunnel.ui.Main")
+    applicationDefaultJvmArgs = listOf(
+        "-Dapp.title=$appTitle",
+        "-Dapp.version=$appVersion",
+        "-Dapp.site=$appSite"
+    )
+}
+
+tasks.jar {
+    archiveBaseName.set("sshtunnel-ng")
+    archiveVersion.set("")
+
+    manifest {
+        attributes(
+            "Main-Class" to "org.programmerplanet.sshtunnel.ui.Main",
+            "Implementation-Version" to appVersion,
+            "Implementation-Title" to appTitle,
+            "Implementation-Vendor" to appSite,
+            "Class-Path" to configurations.runtimeClasspath.get()
+                .filter { it.name.endsWith(".jar") }
+                .joinToString(" ") { "libs/${it.name}" }
+        )
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.named<JavaExec>("run") {
@@ -50,4 +99,41 @@ tasks.named<JavaExec>("run") {
 
 kotlin {
     jvmToolchain(18)
+}
+
+val distPlatforms = listOf("windows", "linux", "mac")
+val swtArtifacts = mapOf(
+    "windows" to "org.eclipse.swt.win32.win32.x86_64",
+    "linux" to "org.eclipse.swt.gtk.linux.x86_64",
+    "mac" to "org.eclipse.swt.cocoa.macosx.aarch64"
+)
+
+distPlatforms.forEach { os ->
+    tasks.register<Copy>("dist${os.replaceFirstChar { it.uppercase() }}") {
+        val outputDir = layout.buildDirectory.dir("dist/$os")
+        into(outputDir)
+
+        from("build/libs/sshtunnel-ng.jar")
+
+        // Include all dependencies except SWT
+        from(configurations.runtimeClasspath.get().filterNot {
+            it.name.contains("org.eclipse.swt")
+        }) {
+            into("libs")
+        }
+
+        // Include only the SWT jar for this target OS
+        val swtJar = when (os) {
+            "windows" -> file("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar")
+            "linux" -> file("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar")
+            "mac" -> file("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar")
+            else -> error("Unsupported platform")
+        }
+
+        from(swtJar) {
+            into("libs")
+        }
+
+        from("scripts/$os/")
+    }
 }

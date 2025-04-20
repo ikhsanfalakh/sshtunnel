@@ -51,21 +51,53 @@ sshtunnel@agungmulya.com
 --------------------------------------------------------------------------------
 ## Running
 
-  Unzip the target distribution.
+Unzip the distribution for your platform:
 
-  `java -jar sshtunnel-ng-{VERSION}.jar`
+```
+cd sshtunnel-ng-0.7-dist-windows-64
+launch.bat
+```
 
-## Compiling from source
+or:
 
-  For the current platform used for compiling:
+```
+cd sshtunnel-ng-0.7-dist-mac-aarch64
+./launch.sh
+```
 
-  `mvn clean assembly:single`
+Or run manually:
 
-  For cross-platform compilation, for example:
+```
+java -jar lib/sshtunnel-ng-0.7.jar
+```
 
-  `mvn -P +linux,-windows clean assembly:single`
+## Compiling from source (Gradle)
 
-  Supported platforms: windows, windows-64, linux, linux-64, mac-64
+### For the current platform used for compiling:
+
+```
+./gradlew distCurrent
+```
+
+### For cross-platform builds:
+
+```
+./gradlew distWindows
+./gradlew distLinux
+./gradlew distMac
+```
+
+Each command will generate a full distribution in:
+
+```
+build/dist/<platform>/
+```
+
+### Supported platforms:
+
+- windows
+- linux
+- mac
 
 ## Changes
 See [Releases](https://github.com/agung-m/sshtunnel-ng/releases).

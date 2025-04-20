@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/sshtunnel-ng.iml" filepath="$PROJECT_DIR$/sshtunnel-ng.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/sshtunnel-ng.iml" filepath="$PROJECT_DIR$/.idea/modules/sshtunnel-ng.iml" />
     </modules>
   </component>
 </project>
