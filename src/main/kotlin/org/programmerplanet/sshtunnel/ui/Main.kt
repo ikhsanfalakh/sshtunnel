@@ -16,6 +16,7 @@
  */
 package org.programmerplanet.sshtunnel.ui
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.programmerplanet.sshtunnel.util.AppInfo
@@ -31,9 +32,11 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         if (SingleInstanceChecker.isAppAlreadyRunning()) {
-            println("Aplikasi sudah berjalan.")
+            println("Application already running.")
             return
         }
+        val logger = KotlinLogging.logger {}
+        logger.info { "Application started" }
 
         Display.setAppName(AppInfo.title)
         val display = Display()

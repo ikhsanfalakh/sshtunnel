@@ -39,6 +39,7 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
     private lateinit var privKeyText: Text
     private lateinit var passPhraseText: Text
     private lateinit var compressionCheckbox: Button
+    private lateinit var autorunningCheckbox: Button
     private lateinit var ciphersText: Text
     private lateinit var chooseCiphersCheckbox: Button
     private lateinit var debugLogDirText: Text
@@ -51,10 +52,12 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         val layout = GridLayout()
         layout.numColumns = 2
         parent.layout = layout
+        val defaultFont = parent.font
 
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Name:"
+            font = defaultFont
         }
 
         nameText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
@@ -64,6 +67,7 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Host:"
+            font = defaultFont
         }
 
         hostText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
@@ -73,15 +77,18 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         Label(parent, SWT.RIGHT).apply {
             layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             text = "Port:"
+            font = defaultFont
         }
 
         portText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
             layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
         }
 
-        val userLabel = Label(parent, SWT.RIGHT)
-        userLabel.layoutData = GridData(GridData.END, GridData.CENTER, false, false)
-        userLabel.text = "Username:"
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Username:"
+            font = defaultFont
+        }
 
         userText = Text(parent, SWT.SINGLE or SWT.BORDER).apply {
             layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
@@ -89,6 +96,7 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
 
         savePassCheckbox = Button(parent, SWT.CHECK).apply {
             text = "Password"
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
             addSelectionListener(object : SelectionAdapter() {
                 override fun widgetSelected(e: SelectionEvent) {
                     setSavePassword(savePassCheckbox.selection)
@@ -119,9 +127,11 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
             layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
         }
 
-        val passPhraseLabel = Label(parent, SWT.RIGHT)
-        passPhraseLabel.layoutData = GridData(GridData.END, GridData.CENTER, false, false)
-        passPhraseLabel.text = "Passphrase:"
+        Label(parent, SWT.RIGHT).apply {
+            layoutData = GridData(GridData.END, GridData.CENTER, false, false)
+            text = "Passphrase:"
+            font = defaultFont
+        }
 
         passPhraseText = Text(parent, SWT.SINGLE or SWT.BORDER or SWT.PASSWORD).apply {
             layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
@@ -158,9 +168,12 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         debugLogDirText.layoutData = GridData(GridData.FILL, GridData.CENTER, true, false).apply {widthHint = 200}
 
         Label(parent, SWT.LEAD).layoutData = GridData(GridData.END, GridData.END, false, false)
-
         compressionCheckbox = Button(parent, SWT.CHECK)
         compressionCheckbox.text = "Compression"
+
+        Label(parent, SWT.LEAD).layoutData = GridData(GridData.END, GridData.END, false, false)
+        autorunningCheckbox = Button(parent, SWT.CHECK)
+        autorunningCheckbox.text = "Auto Running"
 
         nameText.text = session.sessionName
         hostText.text= session.hostname.orEmpty()
@@ -185,6 +198,7 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         }
         debugLogDirText.text = session.debugLogPath.orEmpty()
         compressionCheckbox.selection = session.isCompressed
+        autorunningCheckbox.selection = session.isAutorunning
     }
 
     override fun okPressed() {
@@ -199,6 +213,7 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
             isCompressed = compressionCheckbox.selection
             ciphers = ciphersText.text.orEmpty()
             debugLogPath = debugLogDirText.text.orEmpty()
+            isAutorunning = autorunningCheckbox.selection
         }
         super.okPressed()
     }
@@ -210,7 +225,7 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         if (!savePassword) {
             passText.text = ""
         } else {
-            passText.text = session.password
+            passText.text = session.password ?: ""
         }
     }
 
@@ -221,7 +236,7 @@ class EditSessionDialog(parent: Shell, private val session: Session) :
         if (!isChosen) {
             ciphersText.text = ""
         } else {
-            ciphersText.text = session.ciphers
+            ciphersText.text = session.ciphers ?: ""
         }
     }
 

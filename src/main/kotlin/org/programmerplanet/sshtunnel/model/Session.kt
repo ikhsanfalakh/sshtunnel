@@ -30,6 +30,7 @@ data class Session(
     var identityPath: String? = null,
     var passPhrase: String? = null,
     var isCompressed: Boolean = false,
+    var isAutorunning: Boolean = false,
     var ciphers: String? = null,
     var debugLogPath: String? = null,
     val tunnels: MutableList<Tunnel> = mutableListOf()

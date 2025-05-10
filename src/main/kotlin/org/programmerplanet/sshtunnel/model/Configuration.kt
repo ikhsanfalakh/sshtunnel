@@ -34,7 +34,7 @@ class Configuration {
     var left: Int = 0
     var width: Int = 700
     var height: Int = 400
-    var weights: IntArray = intArrayOf(5, 7)
+    var weights: IntArray = intArrayOf(7, 5)
     val sessions: MutableList<Session> = ArrayList()
 
     @Throws(IOException::class)
@@ -78,6 +78,7 @@ class Configuration {
             session.debugLogPath?.let {path -> properties.setProperty("$sessionKey.debugLogPath", path)}
 
             properties.setProperty("$sessionKey.compression", session.isCompressed.toString())
+            properties.setProperty("$sessionKey.autorunning", session.isAutorunning.toString())
             session.tunnels.forEachIndexed { index, tunnel ->
                 val tunnelKey = "$sessionKey.tunnels[$index]"
                 properties.apply {
@@ -155,6 +156,13 @@ class Configuration {
                     compressed = compressionString.toBoolean()
                 }
                 session.isCompressed = compressed
+
+                var autorun = false
+                val autorunString = properties.getProperty("$sessionKey.autorunning")
+                if (autorunString != null) {
+                    autorun = autorunString.toBoolean()
+                }
+                session.isAutorunning = autorun
 
                 sessions.add(session)
 
