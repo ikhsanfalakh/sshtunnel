@@ -25,15 +25,17 @@ https://www.ssh.com/academy/ssh/tunneling
 10. Reliable (automatic reconnection, session hang prevention)
 11. Cross-platform (Linux, Windows, and macOS)
 12. Portable installation, no admin/root access required (runnable from an external disk or USB drive)
+13. Minimize Systray
+14. Auto Running
 
 ## Download
 
 ### Latest version
 
-* [Linux x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-linux-64.zip)
-* [Windows 64-bit](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-windows-64.zip)
-* [macOS x86-64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-mac-64.zip)
-* [macOS ARM64](https://github.com/agung-m/sshtunnel-ng/releases/download/0.7/sshtunnel-ng-0.7-dist-mac-aarch64.zip)
+* [Linux x86-64]()
+* [Windows 64-bit]()
+* [macOS x86-64]()
+* [macOS ARM64]()
 
 ## Requirements
 
@@ -46,7 +48,7 @@ For macOS ARM64, the minimum required Java version is [JDK17](https://www.oracle
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
 ## Contact
-sshtunnel@agungmulya.com
+mr.ikhsanfalakh@gmail.com
 
 --------------------------------------------------------------------------------
 ## Running
@@ -73,13 +75,13 @@ java -jar lib/sshtunnel-ng-0.7.jar
 
 ## Compiling from source (Gradle)
 
-### For the current platform used for compiling:
+### For compiling source:
 
 ```
-./gradlew distCurrent
+./gradlew clean jar
 ```
 
-### For cross-platform builds:
+### For cross-platform distribution:
 
 ```
 ./gradlew distWindows
