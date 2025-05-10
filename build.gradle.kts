@@ -102,38 +102,94 @@ kotlin {
 }
 
 val distPlatforms = listOf("windows", "linux", "mac")
-val swtArtifacts = mapOf(
-    "windows" to "org.eclipse.swt.win32.win32.x86_64",
-    "linux" to "org.eclipse.swt.gtk.linux.x86_64",
-    "mac" to "org.eclipse.swt.cocoa.macosx.aarch64"
-)
 
 distPlatforms.forEach { os ->
     tasks.register<Copy>("dist${os.replaceFirstChar { it.uppercase() }}") {
         val outputDir = layout.buildDirectory.dir("dist/$os")
-        into(outputDir)
 
-        from("build/libs/sshtunnel-ng.jar")
+        if (os == "mac") {
+            // macOS: buat .app bundle
+            val appDir = file("${outputDir.get()}/$appTitle.app/Contents")
+            val resourcesDir = File(appDir, "Resources")
+            val macosDir = File(appDir, "MacOS")
 
-        // Include all dependencies except SWT
-        from(configurations.runtimeClasspath.get().filterNot {
-            it.name.contains("org.eclipse.swt")
-        }) {
-            into("libs")
+            into(resourcesDir)
+            from("build/libs/sshtunnel-ng.jar")
+            from(configurations.runtimeClasspath.get().filterNot {
+                it.name.contains("org.eclipse.swt")
+            }) {
+                into("lib")
+            }
+            from("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar") {
+                into("lib")
+            }
+            from("build/resources/main/images/sshtunnel.icns")
+
+            doLast {
+                resourcesDir.mkdirs()
+                macosDir.mkdirs()
+
+                // Info.plist
+                val plistContent = """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+                     "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                    <plist version="1.0">
+                    <dict>
+                      <key>CFBundleName</key>
+                      <string>$appTitle</string>
+                      <key>CFBundleDisplayName</key>
+                      <string>$appTitle</string>
+                      <key>CFBundleIdentifier</key>
+                      <string>org.programmerplanet.sshtunnel</string>
+                      <key>CFBundleVersion</key>
+                      <string>${project.version}</string>
+                      <key>CFBundlePackageType</key>
+                      <string>APPL</string>
+                      <key>CFBundleExecutable</key>
+                      <string>launcher</string>
+                      <key>CFBundleIconFile</key>
+                      <string>sshtunnel</string>
+                      <key>LSUIElement</key>
+                      <true/>
+                    </dict>
+                    </plist>
+                """.trimIndent()
+                File(appDir, "Info.plist").writeText(plistContent)
+
+                // launcher
+                val launcherScript = listOf(
+                    "#!/bin/bash",
+                    "DIR=\"\$(cd \"\$(dirname \"\$0\")/../Resources\" && pwd)\"",
+                    "exec /usr/bin/java -XstartOnFirstThread -cp \"\$DIR/lib/*:\$DIR/sshtunnel-ng.jar\" org.programmerplanet.sshtunnel.ui.Main"
+                ).joinToString("\n")
+                val launcherFile = File(macosDir, "launcher")
+                launcherFile.writeText(launcherScript)
+                launcherFile.setExecutable(true)
+            }
+        } else {
+            // Windows/Linux
+            into(outputDir)
+
+            from("build/libs/sshtunnel-ng.jar")
+
+            from(configurations.runtimeClasspath.get().filterNot {
+                it.name.contains("org.eclipse.swt")
+            }) {
+                into("libs")
+            }
+
+            val swtJar = when (os) {
+                "windows" -> file("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar")
+                "linux" -> file("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar")
+                else -> error("Unsupported platform")
+            }
+
+            from(swtJar) {
+                into("libs")
+            }
+
+            from("scripts/$os/")
         }
-
-        // Include only the SWT jar for this target OS
-        val swtJar = when (os) {
-            "windows" -> file("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar")
-            "linux" -> file("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar")
-            "mac" -> file("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar")
-            else -> error("Unsupported platform")
-        }
-
-        from(swtJar) {
-            into("libs")
-        }
-
-        from("scripts/$os/")
     }
 }
