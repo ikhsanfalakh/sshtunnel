@@ -16,6 +16,7 @@
  */
 package org.programmerplanet.sshtunnel.ui
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events.*
@@ -29,20 +30,22 @@ import org.programmerplanet.sshtunnel.model.ConnectionManager
 import java.io.IOException
 import java.io.InputStream
 import kotlin.system.exitProcess
+import org.programmerplanet.sshtunnel.util.AppInfo
 
 enum class ImageResource(private val fileName: String) {
     App("/images/sshtunnel.png"),
-    Connect("/images/connect.png"),
-    Disconnect("/images/disconnect.png"),
+    Connect("/images/connect_on.png"),
+    Disconnect("/images/connect_off.png"),
     ConnectAll("/images/connect_all.png"),
     DisconnectAll("/images/disconnect_all.png"),
-    Connected("/images/bullet_green.png"),
-    Disconnected("/images/bullet_red.png"),
+    Connected("/images/connect_on.png"),
+    Disconnected("/images/connect_off.png"),
     Add("/images/add.png"),
     Edit("/images/edit.png"),
     Remove("/images/delete.png"),
     Import("/images/import.png"),
-    Export("/images/export.png");
+    Export("/images/export.png"),
+    RunAuto("/images/check.png");
 
     private var image: Image? = null
 
@@ -76,7 +79,7 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
     private lateinit var progressBar: ProgressBar
 
     private var configuration: Configuration = Configuration()
-    private var sashForm: SashForm
+    private lateinit var sashForm: SashForm
     private var sessionsComposite: SessionsComposite
     private var tunnelsComposite: TunnelsComposite? = null
 
@@ -96,11 +99,22 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         shell.image = ImageResource.App.getImage(display)
         shell.addShellListener(object : ShellAdapter() {
             override fun shellClosed(e: ShellEvent) {
-                exit()
+                val messageBox = MessageBox(shell, SWT.ICON_QUESTION or SWT.YES or SWT.NO)
+                messageBox.text = "Exit Confirmation"
+                messageBox.message = "Do you want to exit\nSSH Tunnel NG?"
+
+                val response = messageBox.open()
+                if (response == SWT.YES) {
+                    exit()
+                } else {
+                    e.doit = false // Batalkan close
+                    shell.visible = false // Sembunyikan aplikasi ke tray
+                }
             }
 
             override fun shellIconified(e: ShellEvent) {
-                shell.minimized = true
+                e.doit = false
+                shell.visible = false // Sembunyikan jendela saat minimize
             }
         })
         layout = GridLayout()
@@ -148,10 +162,13 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         createStatusBarComposite()
         createTrayIcon()
         shell.setBounds(configuration.left, configuration.top, configuration.width, configuration.height)
-        sashForm.weights = configuration.weights
+        //sashForm.setWeights(*configuration.weights) //gunakan ini jika dicompile dari mac os
+        sashForm.weights = configuration.weights //gunakan ini jika dicompile dari windows
+
         // Run connection monitor
         SessionConnectionMonitorFactory.setSshTunnelComposite(this)
         SessionConnectionMonitorFactory.startMonitor()
+        connectAutoSessions()
     }
 
     private fun save() {
@@ -433,6 +450,37 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
         connectionStatusChanged()
     }
 
+    private fun connectAutoSessions() {
+        val autoSessions = configuration.sessions.filter { it.isAutorunning }
+
+        if (autoSessions.isNotEmpty()) {
+            showProgressBar()
+            Thread {
+                autoSessions.forEach { session ->
+                    try {
+                        ConnectionManager.connect(session, shell)
+                        SessionConnectionMonitorFactory.addSession(session.sessionName, session)
+                    } catch (ce: ConnectionException) {
+                        try {
+                            ConnectionManager.disconnect(session)
+                        } catch (ignored: Exception) {
+                        }
+                        Display.getDefault().asyncExec {
+                            showErrorMessage(
+                                "Unable to connect to '${session.sessionName}'",
+                                ce
+                            )
+                        }
+                    }
+                }
+
+                Display.getDefault().asyncExec {
+                    this.connectionStatusChanged()
+                }
+            }.start()
+        }
+    }
+
     private fun createTrayIcon() {
         val tray: Tray = display.systemTray
 
@@ -442,7 +490,10 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
 
         trayItem.addSelectionListener(object : SelectionAdapter() {
             override fun widgetSelected(e: SelectionEvent) {
-                shell.minimized = !shell.minimized
+                //shell.minimized = !shell.minimized
+                shell.minimized = false
+                shell.visible = true
+                shell.setActive()
             }
         })
 
@@ -491,6 +542,14 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
                 menuItem.addListener(SWT.Selection, menuItemListener)
             }
 
+            val openApp = MenuItem(m, SWT.NONE)
+            openApp.text = "Open Application"
+            openApp.addListener(SWT.Selection) {
+                shell.minimized = false
+                shell.visible = true
+                shell.setActive()
+            }
+
             if (configuration.sessions.isNotEmpty()) {
                 MenuItem(m, SWT.SEPARATOR)
             }
@@ -522,9 +581,13 @@ class ApplicationComposite(private val shell: Shell) : Composite(shell, SWT.NONE
     }
 
     companion object {
-        const val APPLICATION_TITLE: String = "SSH Tunnel NG"
-        private const val APPLICATION_VERSION = "v0.7"
-        private const val APPLICATION_SITE = "github.com/agung-m/sshtunnel-ng"
+        private val logger = KotlinLogging.logger {}
+        init {
+            logger.info { "Starting monitor..." }
+        }
+        private val APPLICATION_TITLE: String = AppInfo.title
+        private val APPLICATION_VERSION: String = AppInfo.version
+        private val APPLICATION_SITE: String = AppInfo.site
     }
 }
 

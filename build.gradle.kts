@@ -3,6 +3,7 @@
  *
  * This project uses @Incubating APIs which are subject to change.
  */
+import java.util.Properties
 
 plugins {
     `java-library`
@@ -16,20 +17,45 @@ repositories {
     maven {
         url = uri("https://repo.eclipse.org/content/groups/releases/")
     }
-
 }
 
+// Load properties from appinfo.properties in resources
+val appProperties = Properties().apply {
+    file("src/main/resources/appinfo.properties").inputStream().use { load(it) }
+}
+
+val appTitle = appProperties.getProperty("app.title") ?: "SSH Tunnel NG"
+val appVersion = appProperties.getProperty("app.version") ?: "0.1"
+val appSite = appProperties.getProperty("app.site") ?: "https://example.com"
+
+group = "org.programmerplanet"
+version = appVersion
+description = appTitle
+
+val osName = System.getProperty("os.name").lowercase()
+val arch = System.getProperty("os.arch")
+
 dependencies {
-    api(libs.com.github.mwiede.jsch)
-    api(libs.org.eclipse.swt.org.eclipse.swt.gtk.linux.x86.v64)
+    api("com.github.mwiede:jsch:0.2.25")
+    when {
+        osName.contains("mac") && arch == "aarch64" -> {
+            implementation(files("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar"))
+        }
+        osName.contains("mac") -> {
+            implementation(files("libs/org.eclipse.swt.cocoa.macosx.x86_64-3.129.0.jar"))
+        }
+        osName.contains("win") -> {
+            implementation(files("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar"))
+        }
+        osName.contains("nux") -> {
+            implementation(files("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar"))
+        }
+        else -> error("Unsupported OS")
+    }
     implementation(kotlin("stdlib-jdk8"))
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     runtimeOnly("ch.qos.logback:logback-classic:1.4.12")
 }
-
-group = "org.programmerplanet"
-version = "0.7"
-description = "ssh-tunel-manager"
 
 tasks.withType<JavaCompile>() {
     options.encoding = "UTF-8"
@@ -41,6 +67,29 @@ tasks.withType<Javadoc>() {
 
 application {
     mainClass.set("org.programmerplanet.sshtunnel.ui.Main")
+    applicationDefaultJvmArgs = listOf(
+        "-Dapp.title=$appTitle",
+        "-Dapp.version=$appVersion",
+        "-Dapp.site=$appSite"
+    )
+}
+
+tasks.jar {
+    archiveBaseName.set("sshtunnel-ng")
+    archiveVersion.set("")
+
+    manifest {
+        attributes(
+            "Main-Class" to "org.programmerplanet.sshtunnel.ui.Main",
+            "Implementation-Version" to appVersion,
+            "Implementation-Title" to appTitle,
+            "Implementation-Vendor" to appSite,
+            "Class-Path" to configurations.runtimeClasspath.get()
+                .filter { it.name.endsWith(".jar") }
+                .joinToString(" ") { "libs/${it.name}" }
+        )
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.named<JavaExec>("run") {
@@ -50,4 +99,97 @@ tasks.named<JavaExec>("run") {
 
 kotlin {
     jvmToolchain(18)
+}
+
+val distPlatforms = listOf("windows", "linux", "mac")
+
+distPlatforms.forEach { os ->
+    tasks.register<Copy>("dist${os.replaceFirstChar { it.uppercase() }}") {
+        val outputDir = layout.buildDirectory.dir("dist/$os")
+
+        if (os == "mac") {
+            // macOS: buat .app bundle
+            val appDir = file("${outputDir.get()}/$appTitle.app/Contents")
+            val resourcesDir = File(appDir, "Resources")
+            val macosDir = File(appDir, "MacOS")
+
+            into(resourcesDir)
+            from("build/libs/sshtunnel-ng.jar")
+            from(configurations.runtimeClasspath.get().filterNot {
+                it.name.contains("org.eclipse.swt")
+            }) {
+                into("lib")
+            }
+            from("libs/org.eclipse.swt.cocoa.macosx.aarch64-3.129.0.jar") {
+                into("lib")
+            }
+            from("build/resources/main/images/sshtunnel.icns")
+
+            doLast {
+                resourcesDir.mkdirs()
+                macosDir.mkdirs()
+
+                // Info.plist
+                val plistContent = """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+                     "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                    <plist version="1.0">
+                    <dict>
+                      <key>CFBundleName</key>
+                      <string>$appTitle</string>
+                      <key>CFBundleDisplayName</key>
+                      <string>$appTitle</string>
+                      <key>CFBundleIdentifier</key>
+                      <string>org.programmerplanet.sshtunnel</string>
+                      <key>CFBundleVersion</key>
+                      <string>${project.version}</string>
+                      <key>CFBundlePackageType</key>
+                      <string>APPL</string>
+                      <key>CFBundleExecutable</key>
+                      <string>launcher</string>
+                      <key>CFBundleIconFile</key>
+                      <string>sshtunnel</string>
+                      <key>LSUIElement</key>
+                      <true/>
+                    </dict>
+                    </plist>
+                """.trimIndent()
+                File(appDir, "Info.plist").writeText(plistContent)
+
+                // launcher
+                val launcherScript = listOf(
+                    "#!/bin/bash",
+                    "DIR=\"\$(cd \"\$(dirname \"\$0\")/../Resources\" && pwd)\"",
+                    "exec /usr/bin/java -XstartOnFirstThread -cp \"\$DIR/lib/*:\$DIR/sshtunnel-ng.jar\" org.programmerplanet.sshtunnel.ui.Main"
+                ).joinToString("\n")
+                val launcherFile = File(macosDir, "launcher")
+                launcherFile.writeText(launcherScript)
+                launcherFile.setExecutable(true)
+            }
+        } else {
+            // Windows/Linux
+            into(outputDir)
+
+            from("build/libs/sshtunnel-ng.jar")
+
+            from(configurations.runtimeClasspath.get().filterNot {
+                it.name.contains("org.eclipse.swt")
+            }) {
+                into("libs")
+            }
+
+            val swtJar = when (os) {
+                "windows" -> file("libs/org.eclipse.swt.win32.win32.x86_64-4.3.jar")
+                "linux" -> file("libs/org.eclipse.swt.gtk.linux.x86_64-4.3.jar")
+                else -> error("Unsupported platform")
+            }
+
+            from(swtJar) {
+                into("libs")
+            }
+
+            from("scripts/$os/")
+        }
+    }
 }
